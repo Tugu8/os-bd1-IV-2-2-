@@ -1,0 +1,17 @@
+# Kernel module build artifacts
+*.o
+*.ko
+*.mod
+*.mod.c
+*.cmd
+.*.cmd
+*.symvers
+*.order
+.tmp_versions/
+
+# Python / editor
+__pycache__/
+*.pyc
+.venv/
+.vscode/
+.idea/
