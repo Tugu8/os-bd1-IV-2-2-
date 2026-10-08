@@ -4,7 +4,7 @@
 |---|---|
 | Хуваарилалтын код | IV-2-2 |
 | Төсөл | Linux Kernel Module for Task Information |
-| Repository | _GitHub холбоос_ |
+| Repository | https://github.com/Tugu8/os-bd1-IV-2-2- |
 | Хэл/сан/орчин | C (Linux kernel module), UI: _сонгоно_; Ubuntu/Debian bare-metal |
 | Үндсэн дүрслэл | Task hierarchy (parent – task – children мод) |
 | Шүүмжлэх баг | II-4-5 (Sudoku Solution Validator) |
