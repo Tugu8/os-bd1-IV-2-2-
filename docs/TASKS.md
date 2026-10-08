@@ -13,7 +13,7 @@
 
 | Гишүүн | Хариуцах ажил | Commit/file |
 |---|---|---|
-| **B242270047** (багийн ахлагч) | **Үндсэн kernel module.** `/proc/pid`-ийн write (`kmalloc`, `copy_from_user`, `kstrtol`), read (`find_vpid`, `pid_task`, command/pid/state), алдаа шалгах (NULL PID → 0). Parent болон children жагсаалтыг гаргадаг өргөтгөл. Шинэ kernel-ийн API (`proc_ops`, `__state`). Code review болон merge хийнэ. | `src/kmod/` |
+| B242270047 | **Үндсэн kernel module.** `/proc/pid`-ийн write (`kmalloc`, `copy_from_user`, `kstrtol`), read (`find_vpid`, `pid_task`, command/pid/state), алдаа шалгах (NULL PID → 0). Parent болон children жагсаалтыг гаргадаг өргөтгөл. Шинэ kernel-ийн API (`proc_ops`, `__state`). | `src/kmod/` |
 | B190910014 | **Interactive UI.** PID оруулах, сонгох; task hierarchy модыг зурах; state-ийг өнгөөр ялгах; refresh/reset хийх; алдааны мэдэгдэл харуулах. Kernel module-тай `/proc/pid`-ээр холбогдоно. | `src/ui/` |
 | B210930842 | **2-р бүлгийн бэлтгэл module ба build орчин.** Hello/jiffies маягийн `/proc` module, `Makefile`, суулгах заавар. Kernel version, dependency-г баримтжуулна. **Operational manual** бичнэ. | `src/prereq/`, `docs/Manual.md` (operational хэсэг) |
 | B231910003 | **Туршилт.** Номын жишээ (bash, init PID 1 гэх мэт) болон нэмэлт тестүүд. Boundary/error тест: байхгүй PID, сөрөг тоо, үсэг, хоосон оролт, маш том тоо, kernel thread. Тест бүрийн хүлээгдсэн ба бодит үр дүнг screenshot-той хадгална. | `tests/` |
@@ -46,6 +46,6 @@
 ## Git ажлын дүрэм
 
 1. `main` руу шууд push хийхгүй. Гишүүн бүр өөрийн branch дээр ажиллана (`kmod`, `ui`, `tests`, `docs`, `report`).
-2. Pull Request нээж, ахлагч review хийгээд merge хийнэ.
+2. Pull Request нээж, өөр нэг гишүүн review хийсний дараа merge хийнэ.
 3. Commit мессежийг ойлгомжтой бичнэ, жишээ нь `ui: add tree rendering`.
 4. Нууц үг, хувийн өгөгдөл оруулахгүй. Build-ийн файлуудыг (`*.ko`, `*.o`) commit хийхгүй.
