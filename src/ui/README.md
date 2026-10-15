@@ -95,6 +95,7 @@ Kernel module бэлэн болохоос өмнө UI-г хөгжүүлэх/ту
 
 ```bash
 python3 -m unittest -v src/ui/tests/test_api.py    # 16 тест; module байхгүй бол fallback горимоор
+node --test src/ui/tests/test_tree.mjs             # 9 тест — модны байрлал, diff (Node 18+, заавал биш)
 ```
 | № | Шалгах зүйл |
 |---|---|
@@ -114,9 +115,12 @@ python3 -m unittest -v src/ui/tests/test_api.py    # 16 тест; module бай�
 | Файл | Агуулга |
 |---|---|
 | `server.py` | HTTP сервер, JSON API, `/proc/pid_tree` задлагч, мутекс, demo удирдлага |
-| `static/index.html`, `app.js`, `style.css` | UI, SVG модны байрлал (tidy tree), legend, автомат шинэчлэлт |
+| `static/index.html`, `app.js`, `style.css` | UI: төлөв, түүх, сценари, туршилт удирдах, SVG зурах, legend |
+| `static/tree.js` | DOM-гүй логик: `layoutTree()` (tidy tree + олон навчийг сүлжээ), `diffTrees()` |
 | `demo_tree.py` | Туршилтын процессын мод (`demo_root` → sleeper/busy/stopped/threads/zombie) |
-| `tests/test_api.py` | API тест (unittest) |
+| `tests/test_api.py` | API тест (unittest, 16) |
+| `tests/test_tree.mjs` | Модны байрлал, diff тест (Node, 9) |
+| `REPORT_UI.md` | Тайлангийн UI хэсэг (зохиомж, хэрэгжилт, туршилт, үр дүн, хэлэлцүүлэг) + manual-д зориулсан хэсэг |
 
 ## AI ашиглалт
 
