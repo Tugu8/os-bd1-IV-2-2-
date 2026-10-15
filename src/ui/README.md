@@ -11,6 +11,7 @@ sudo insmod src/kmod/pid.ko            # kernel module (src/kmod — B242270047)
 python3 src/ui/server.py               # → http://localhost:8000
 python3 src/ui/server.py --port 9000   # өөр порт
 python3 src/ui/server.py --fallback    # module хараахан бэлэн биш үед (доорхыг үз)
+python3 src/ui/contract_check.py       # module нь UI-тай нийцэх эсэх (34 шалгалт, доорхыг үз)
 ```
 WSL2 дээр Windows-ийн браузераас шууд `http://localhost:8000` нээгдэнэ. Зогсоох: `Ctrl+C`.
 
@@ -77,16 +78,39 @@ summary  ancestors=2 children=1 truncated=0
 
 **Синхрончлол:** module нэг *глобал* PID хадгалдаг тул хоёр хүсэлт зэрэг "бичих → унших" хийвэл нэг нь нөгөөгийнхийг уншиж болно. Сервер `threading.Lock()`-оор бичих+уншихыг нэг эгзэгтэй мужид оруулна (`src/ui/tests/test_api.py::test_10`).
 
-## `--fallback` горим
+## Backend горим (автоматаар сонгоно)
 
-Kernel module бэлэн болохоос өмнө UI-г хөгжүүлэх/турших зориулалттай: `/proc/<pid>/stat`-аас ижил бүтэц үүсгэнэ. UI-д **"⚠ Нөөц горим … kernel module биш"** гэж тодорхой харагдана, номын мөрөнд `(fallback)` гэж бичигдэнэ. Эцсийн туршилт, screenshot-ыг module ачаалсан үед хийнэ.
+| Горим | Хэзээ | Өгөгдөл хаанаас | UI-д |
+|---|---|---|---|
+| `module` | `/proc/pid` + `/proc/pid_tree` | бүгд module-ээс | ногоон "● module loaded" |
+| `book` | зөвхөн номын `/proc/pid` | command, pid, `__state` — **module**; эцэг/хүүгийн холбоо, uid, урсгал — `/proc/<pid>/stat` | шар шошго + ℹ banner; дуудлагын логт procfs мөр тусдаа |
+| `fallback` | module байхгүй, `--fallback` өгсөн | бүгд `/proc/<pid>/stat` | "⚠ Нөөц горим … kernel module биш", номын мөрөнд `(fallback)` |
+
+`book` горимын зорилго: kmod эхлээд зөвхөн номын үндсэн даалгаврыг (`/proc/pid`) хийсэн ч UI мод зурж ажиллана — интеграцийн эрсдэлийг бууруулна. Module байхгүй, `--fallback`-гүй → **503**; `/proc/pid` номын формат биш мөр буцаавал → **502** (буруу дүрслэхгүй, `contract_check.py`-г санал болгоно). `fallback` нь UI хөгжүүлэлтэд зориулсан — эцсийн туршилт, screenshot-ыг module ачаалсан үед хийнэ.
+
+## Module-ийг шалгах — `contract_check.py` (kmod-д)
+
+```bash
+sudo insmod src/kmod/pid.ko
+python3 src/ui/contract_check.py       # ✔ / ⚠ / ✖ хүснэгт; ✖ байвал exit 1 (UI серверийг зогсоогоод)
+```
+Жинхэнэ процессуудаар (скрипт өөрөө, хүү `sleep` S ба T, zombie хүү, нэмэлт урсгал) шалгана: номын формат, `pid` = бичсэн PID (namespace), `command`, `__state` бит (S → `TASK_INTERRUPTIBLE` 1, T → `__TASK_STOPPED` 4 — `sleep`-ийнх 8193 = 1 | `TASK_FREEZABLE`), байхгүй PID → 0 байт, 5 буруу оролт, **8 байтаар хэсэгчлэн унших** (count, `*pos`; буфер 4096 тул module илүү хуулсан ч скрипт эвдрэхгүй, илрүүлнэ), `/proc/pid_tree`-ийн мөр бүр UI-ийн `parse_tree_output()`-оор уншигдах, ancestor гинж PID 1 хүртэл тасралтгүй, child жагсаалт = procfs, S/T/Z, `threads`, `summary`.
+
+Хэмжсэн үр дүн (WSL2 6.6.87.2):
+
+| Module | ✔ | ⚠ | ✖ | Илэрсэн |
+|---|---|---|---|---|
+| `src/kmod/pid.c` (kmod-proposal, засварын өмнө) | 33 | 0 | **1** | 8 байтаар уншихад мөр `command ` дээр тасарна — `if (*pos > 0) return 0;` → kmod-proposal-д зассан |
+| `src/kmod/pid.c` (засварын дараа) | **34** | 0 | 0 | — |
+| `tests/book_modules/book_ok.ko` (зөвхөн `/proc/pid`, зөв) | 15 | 1 | 0 | `/proc/pid_tree` алга → UI `book` горим |
+| `tests/book_modules/book_naive.ko` (номын skeleton-ий хэв маяг) | 12 | 1 | **3** | global PID (WSL-д PID 1 = 1451), count-оос 37 байт илүү `copy_to_user`, `sscanf` нь `abc`-г хүлээн авч хуучин PID-ийг уншуулна |
 
 ## API (server.py)
 
 | Endpoint | Хариу |
 |---|---|
-| `GET /api/status` | `module_loaded`, backend, кернел, demo root |
-| `GET /api/task?pid=N&depth=D` | `book_line`, `task`, `ancestors[]`, `tree` (D түвшин), `raw`, `nodes`, `queries`, `elapsed_ms` · алдаа: 400 (буруу оролт), 404 (байхгүй PID), 503 (module байхгүй) |
+| `GET /api/status` | `mode` (`module` / `book` / `fallback` / null), `module_loaded` (`/proc/pid` бий эсэх), `tree_file`, backend, кернел, demo root |
+| `GET /api/task?pid=N&depth=D` | `book_line`, `task`, `ancestors[]`, `tree` (D түвшин), `raw`, `mode`, `nodes`, `queries`, `elapsed_ms` · алдаа: 400 (буруу оролт), 404 (байхгүй PID), 502 (`/proc/pid` формат буруу), 503 (module байхгүй) |
 | `GET /api/processes` | `[{pid, ppid, comm, state_char}]` — сонгох жагсаалт |
 | `POST /api/demo`, `POST /api/demo/stop` | туршилтын процессын мод эхлүүлэх / зогсоох |
 | `POST /api/demo/spawn` · `/zombie` · `/reap` | demo_root-д SIGUSR1 (fork шинэ хүү) · SIGUSR2 (шууд дуусах хүү → Z) · SIGHUP (wait() → Z цэвэрлэх) |
@@ -97,7 +121,7 @@ Kernel module бэлэн болохоос өмнө UI-г хөгжүүлэх/ту
 ## Тест
 
 ```bash
-python3 -m unittest -v src/ui/tests/test_api.py    # 16 тест; module байхгүй бол fallback горимоор
+python3 -m unittest -v src/ui/tests/test_api.py    # 22 тест; module байхгүй бол fallback горимоор
 node --test src/ui/tests/test_tree.mjs             # 10 тест — модны байрлал, diff, экспорт (Node 18+, заавал биш)
 ```
 | № | Шалгах зүйл |
@@ -110,18 +134,23 @@ node --test src/ui/tests/test_tree.mjs             # 10 тест — модны 
 | 14 | `+ Хүү процесс` → demo_new_N, `+ Zombie` → Z |
 | 15 | амьдралын мөчлөг: STOP → **T**, CONT → S/R, TERM → **Z**, wait() → алга, zombie 0 |
 | 16 | аюулгүй байдал: PID 1 руу signal → **403**, demo_root → 400, KILL signal → 400, `abc` → 400 |
+| 17–18 | задлагч: номын мөр (тоо/үсэг state, `comm`-д `]`, буруу формат → None), `/proc/pid_tree`-д зай, `=`, `\|` агуулсан `comm` |
+| 19–21 | горим: `fallback`, module-гүй → 503, `/proc/pid` формат буруу → 502 (зам түр сольж, module-оос үл хамаарна) |
+| 22 | `book` горим = `module` горим: PID 1-ийн task талбарууд, хүүхдүүд, өвөг эцгийн гинж ижил (module шаардлагатай) |
 
-Туршсан: WSL2 Ubuntu 22.04 (kernel 6.6.87.2) — module ачаалсан **16/16**, fallback горим **16/16**.
+Туршсан: WSL2 Ubuntu 22.04 (kernel 6.6.87.2) — `pid.ko` ачаалсан **22/22**, `book_ok.ko` (book горим) **21/21** + 1 алгассан, module-гүй (fallback) **21/21** + 1 алгассан.
 
 ## Файлууд
 
 | Файл | Агуулга |
 |---|---|
-| `server.py` | HTTP сервер, JSON API, `/proc/pid_tree` задлагч, мутекс, demo удирдлага |
+| `server.py` | HTTP сервер, JSON API, `/proc/pid` ба `/proc/pid_tree` задлагч, backend горим (module / book / fallback), мутекс, demo удирдлага |
+| `contract_check.py` | Module ↔ UI интерфейсийн шалгагч (34 шалгалт) — kmod-ийн хөгжүүлэгчид |
 | `static/index.html`, `app.js`, `style.css` | UI: төлөв, түүх, сценари, туршилт удирдах, SVG зурах, legend |
 | `static/tree.js` | DOM-гүй логик: `layoutTree()` (tidy tree + олон навчийг сүлжээ), `diffTrees()` |
 | `demo_tree.py` | Туршилтын процессын мод (`demo_root` → sleeper/busy/stopped/threads/zombie) |
-| `tests/test_api.py` | API тест (unittest, 16) |
+| `tests/test_api.py` | API, задлагч, горимын тест (unittest, 22) |
+| `tests/book_modules/` | Туршилтын module: зөвхөн `/proc/pid` — `book_ok` (зөв), `book_naive` (номын skeleton-ий алдаатай хэв маяг); src/kmod-ийг орлохгүй |
 | `tests/test_tree.mjs` | Модны байрлал, diff, экспорт тест (Node, 10) |
 | `REPORT_UI.md` | Тайлангийн UI хэсэг (зохиомж, хэрэгжилт, туршилт, үр дүн, хэлэлцүүлэг) + manual-д зориулсан хэсэг |
 
