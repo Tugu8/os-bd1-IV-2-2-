@@ -15,6 +15,11 @@ API:
     GET  /api/processes              — сонгоход зориулсан бүх процессын жагсаалт
     POST /api/demo                   — туршилтын процессын мод үүсгэнэ (src/ui/demo_tree.py)
     POST /api/demo/stop              — туршилтын модыг зогсооно
+    POST /api/demo/spawn             — demo_root шинэ хүү процесс үүсгэнэ (SIGUSR1)
+    POST /api/demo/zombie            — demo_root шууд дуусах хүү → zombie (SIGUSR2)
+    POST /api/demo/reap              — demo_root wait() хийж zombie цэвэрлэнэ (SIGHUP)
+    POST /api/demo/signal?pid=N&sig=STOP|CONT|TERM
+                                     — demo процесст signal (зөвхөн demo процессын бүлэгт; бусад → 403)
 """
 import argparse
 import json
@@ -57,6 +62,13 @@ class TaskError(Exception):
         super().__init__(message)
         self.status = status
         self.message = message
+
+
+def _call(op, path, data, nbytes, t0):
+    """Module-тэй хийсэн нэг бичих/унших үйлдлийн бүртгэл."""
+    preview = data if len(data) <= 70 else data[:67] + "..."
+    return {"op": op, "path": path, "data": preview, "bytes": nbytes,
+            "us": round((time.perf_counter() - t0) * 1e6)}
 
 
 def parse_pid(text):
@@ -119,21 +131,28 @@ class ModuleBackend:
         return os.path.exists(PROC_PID) and os.path.exists(PROC_TREE)
 
     def query(self, pid):
+        calls = []                                # UI-ийн "Module дуудлагын лог"-д
         with _module_lock:
+            t = time.perf_counter()
             try:
                 with open(PROC_PID, "w") as f:
                     f.write(f"{pid}\n")
             except OSError as e:
                 raise TaskError(400, f"Module оролтыг татгалзлаа: {e.strerror}")
+            calls.append(_call("write", PROC_PID, f"{pid}\\n", len(f"{pid}\n"), t))
+            t = time.perf_counter()
             with open(PROC_PID) as f:
                 book_line = f.read().strip()
+            calls.append(_call("read", PROC_PID, book_line, len(book_line), t))
+            t = time.perf_counter()
             with open(PROC_TREE) as f:
                 raw = f.read()
+            calls.append(_call("read", PROC_TREE, raw.split("\n", 1)[0], len(raw), t))
         if not raw.strip():
             raise TaskError(404, f"PID {pid} олдсонгүй — module 0 байт буцаалаа (номын шаардлага)")
         task, ancestors, children, summary = parse_tree_output(raw)
         return {"book_line": book_line, "task": task, "ancestors": ancestors,
-                "children": children, "summary": summary, "raw": raw}
+                "children": children, "summary": summary, "raw": raw, "calls": calls}
 
 
 class ProcfsBackend:
@@ -176,7 +195,9 @@ class ProcfsBackend:
         return {"book_line": book + "   (fallback)", "task": task, "ancestors": ancestors,
                 "children": children,
                 "summary": {"ancestors": len(ancestors), "children": len(children), "truncated": 0},
-                "raw": "(procfs fallback — module ачаалагдаагүй)\n"}
+                "raw": "(procfs fallback — module ачаалагдаагүй)\n",
+                "calls": [{"op": "read", "path": f"/proc/{pid}/stat (fallback)", "data": "",
+                           "bytes": 0, "us": 0}]}
 
 
 def build_tree(backend, pid, depth):
@@ -186,11 +207,13 @@ def build_tree(backend, pid, depth):
 
     def expand(info, level):
         node = dict(info["task"])
+        node["demo"] = Demo.is_member(node["pid"])
         node["truncated"] = bool(info["summary"].get("truncated"))
         node["child_count"] = len(info["children"])
         node["children"] = []
         for child in info["children"]:
-            if level < depth and counter["nodes"] < MAX_NODES:
+            # depth=0: зөвхөн шууд хүүхдүүд (асуухгүй), depth=1: тэдний хүүхдүүд ч гэх мэт
+            if level <= depth and counter["nodes"] < MAX_NODES:
                 try:
                     sub = backend.query(child["pid"])
                     counter["queries"] += 1
@@ -201,6 +224,7 @@ def build_tree(backend, pid, depth):
             else:
                 leaf = dict(child)
                 leaf["children"], leaf["unexpanded"] = [], True
+                leaf["demo"] = Demo.is_member(leaf["pid"])
                 node["children"].append(leaf)
         return node
 
@@ -247,6 +271,44 @@ class Demo:
         if cls.proc and cls.proc.stdout:
             cls.proc.stdout.close()
         cls.proc, cls.root_pid = None, None
+
+    # --- ажиллаж буй туршилтыг удирдах ---------------------------------
+    SIGNALS = {"STOP": signal.SIGSTOP, "CONT": signal.SIGCONT, "TERM": signal.SIGTERM}
+
+    @classmethod
+    def _require_running(cls):
+        if not cls.root_pid or not cls.proc or cls.proc.poll() is not None:
+            raise TaskError(409, "Demo мод ажиллаагүй байна — эхлээд 'Demo мод үүсгэх' дарна уу")
+
+    @classmethod
+    def is_member(cls, pid):
+        """PID нь demo модны процессын бүлэгт (pgid = demo_root) хамаарах эсэх."""
+        if not cls.root_pid:
+            return False
+        try:
+            return os.getpgid(pid) == cls.root_pid
+        except OSError:
+            return False
+
+    @classmethod
+    def signal_root(cls, sig):
+        cls._require_running()
+        os.kill(cls.root_pid, sig)
+        time.sleep(0.25)                                  # кернел төлөвөө шинэчлэх хугацаа
+        return cls.root_pid
+
+    @classmethod
+    def signal_member(cls, pid, name):
+        """Зөвхөн demo процесст signal илгээнэ — системийн бусад процесст хүрэхгүй."""
+        cls._require_running()
+        if name not in cls.SIGNALS:
+            raise TaskError(400, "sig нь STOP, CONT, TERM-ийн аль нэг байна")
+        if pid == cls.root_pid:
+            raise TaskError(400, "demo_root-ийг 'Demo зогсоох' товчоор зогсооно")
+        if not cls.is_member(pid):
+            raise TaskError(403, f"PID {pid} нь demo модны процесс биш — signal зөвхөн demo процесст илгээгдэнэ")
+        os.kill(pid, cls.SIGNALS[name])
+        time.sleep(0.25)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -303,6 +365,7 @@ class Handler(BaseHTTPRequestHandler):
                     "task": root["task"], "ancestors": root["ancestors"], "tree": tree,
                     "summary": root["summary"], "raw": root["raw"], "depth": depth,
                     "nodes": counter["nodes"], "queries": counter["queries"],
+                    "calls": root["calls"], "demo_root": Demo.root_pid,
                     "elapsed_ms": round((time.perf_counter() - t0) * 1000, 1),
                 })
             elif url.path == "/api/processes":
@@ -313,12 +376,23 @@ class Handler(BaseHTTPRequestHandler):
             self._error(e)
 
     def do_POST(self):
+        url = urlparse(self.path)
+        q = parse_qs(url.query)
+        root_signals = {"/api/demo/spawn": signal.SIGUSR1, "/api/demo/zombie": signal.SIGUSR2,
+                        "/api/demo/reap": signal.SIGHUP}
         try:
-            if self.path == "/api/demo":
+            if url.path == "/api/demo":
                 self._send(200, {"root_pid": Demo.start()})
-            elif self.path == "/api/demo/stop":
+            elif url.path == "/api/demo/stop":
                 Demo.stop()
                 self._send(200, {"stopped": True})
+            elif url.path in root_signals:
+                self._send(200, {"root_pid": Demo.signal_root(root_signals[url.path])})
+            elif url.path == "/api/demo/signal":
+                pid = parse_pid(q.get("pid", [None])[0])
+                sig = (q.get("sig", [""])[0]).upper()
+                Demo.signal_member(pid, sig)
+                self._send(200, {"pid": pid, "sig": sig})
             else:
                 raise TaskError(404, "unknown endpoint")
         except TaskError as e:
