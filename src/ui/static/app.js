@@ -17,6 +17,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   pid: null, depth: 2, timer: null, procs: [], busy: false,
   demoRoot: null,
+  nav: new Map(),      // pid → {g, up, down, left, right} — гарын товчоор шилжих
   last: null,          // хамгийн сүүлийн live хариу
   history: [],         // [{time, pid, comm, depth, data, diff}]
   view: null,          // null = live; эсвэл history-ийн индекс
@@ -314,20 +315,21 @@ function drawTree(d, diff) {
   const cx = (n) => PAD + n._x + NODE_W / 2;
   const Y = (n) => selY + n._y;
 
+  const elements = new Map();      // pid → <g> (гарын товчоор шилжихэд)
   if (ancestors.length) nodes.append(el("text", { x: PAD, y: PAD, class: "label" }, "Өвөг эцгүүд (real_parent)"));
   ancestors.forEach((a, i) => {
     a._x = d.tree._x;
     const y = PAD + 14 + i * ancH;
     const next = i === ancestors.length - 1 ? selY : y + ancH;
-    drawNode(nodes, a, PAD + a._x, y, { ancestor: true });
+    elements.set(a.pid, drawNode(nodes, a, PAD + a._x, y, { ancestor: true }));
     edges.append(link(cx(a), y + NODE_H, cx(a), next, true));
   });
 
   (function draw(n) {
     const y = Y(n);
-    drawNode(nodes, n, PAD + n._x, y, {
+    elements.set(n.pid, drawNode(nodes, n, PAD + n._x, y, {
       selected: n === d.tree, isNew: added.has(n.pid), change: changed.get(n.pid),
-    });
+    }));
     if (n._grid) {
       // Олон навч хүүхэд: нэг хүрээнд сүлжээ, эцгээс хүрээ рүү ганц шугам
       const g = n._grid, gx = PAD + g.x - 8, gy = selY + g.y - 8;
@@ -344,6 +346,9 @@ function drawTree(d, diff) {
     const hidden = (n.child_count || 0) - n.children.length + (n.truncated ? 1 : 0);
     if (hidden > 0) nodes.append(el("text", { x: cx(n), y: y + NODE_H + 14, "text-anchor": "middle", class: "more" }, `+${hidden} харуулаагүй`));
   })(d.tree);
+
+  state.nav = buildNav(d, ancestors, elements);
+  applyTreeSearch();
 
   // Шинэ task сонгоход сонгосон зангилааг хэвтээ тэнхлэгт голлуулна (утас, өргөн мод);
   // ижил task-ийг автоматаар шинэчлэхэд хэрэглэгчийн гүйлгэсэн байрлалыг хадгална.
@@ -387,7 +392,11 @@ function drawNode(parent, n, x, y, { selected = false, ancestor = false, isNew =
   const color = stateColor(n.state_char);
   const cls = ["node", selected && "selected", n.unexpanded && "unexpanded", ancestor && "ancestor",
                isNew && "added", change && "changed"].filter(Boolean).join(" ");
-  const g = el("g", { class: cls, transform: `translate(${x},${y})`, tabindex: 0 });
+  const g = el("g", {
+    class: cls, transform: `translate(${x},${y})`, tabindex: 0, role: "button",
+    "data-pid": n.pid, "data-comm": n.comm.toLowerCase(),
+    "aria-label": `${n.comm}, PID ${n.pid}, төлөв ${STATES[n.state_char] || n.state_char}`,
+  });
   g.append(el("title", {}, `${n.comm}\nPID ${n.pid}  PPID ${n.ppid}  TGID ${n.tgid}\nState ${n.state_char} (${STATES[n.state_char] || "?"})\nUID ${n.uid}  threads ${n.threads}` + (n.demo ? "\n(demo процесс)" : "")));
   if (isNew || change) g.append(el("rect", { class: "halo", x: -4, y: -4, width: NODE_W + 8, height: NODE_H + 8, rx: 11 }));
   g.append(el("rect", { class: "box", width: NODE_W, height: NODE_H, rx: 8, stroke: color }));
@@ -399,8 +408,59 @@ function drawNode(parent, n, x, y, { selected = false, ancestor = false, isNew =
   if (isNew) g.append(el("text", { x: NODE_W - 6, y: -7, "text-anchor": "end", class: "tag tag-new" }, "шинэ"));
   if (change) g.append(el("text", { x: NODE_W - 6, y: -7, "text-anchor": "end", class: "tag tag-chg" }, `${change.from}→${change.to}`));
   g.addEventListener("click", () => select(String(n.pid)));
-  g.addEventListener("keydown", (e) => { if (e.key === "Enter") select(String(n.pid)); });
+  g.addEventListener("keydown", (e) => onNodeKey(e, n.pid));
   parent.append(g);
+  return g;
+}
+
+// ---------------------------------------------------------------- keyboard (гарын товчоор модны дунд шилжих)
+// ↑ эцэг (сонгосон task-аас өвөг эцэг рүү), ↓ эхний хүүхэд, ← → ах дүү, Enter/Space — сонгох
+function onNodeKey(e, pid) {
+  const nav = state.nav.get(pid);
+  if (!nav) return;
+  let target = null;
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(String(pid)); return; }
+  if (e.key === "ArrowUp") target = nav.up;
+  else if (e.key === "ArrowDown") target = nav.down;
+  else if (e.key === "ArrowLeft") target = nav.left;
+  else if (e.key === "ArrowRight") target = nav.right;
+  else return;
+  e.preventDefault();
+  const t = target != null && state.nav.get(target);
+  if (t) t.g.focus();
+}
+
+function buildNav(d, ancestorsDrawn, elements) {
+  const nav = new Map();
+  const put = (pid, rel) => nav.set(pid, { g: elements.get(pid), ...rel });
+  // өвөг эцгийн багана: дээд нь PID 1, доод нь сонгосон task
+  ancestorsDrawn.forEach((a, i) => put(a.pid, {
+    up: ancestorsDrawn[i - 1]?.pid, down: ancestorsDrawn[i + 1]?.pid ?? d.tree.pid,
+  }));
+  (function walk(n, parentPid) {
+    const sib = parentPid == null ? [n] : nav.get(parentPid).kids;
+    const i = sib.findIndex((s) => s.pid === n.pid);
+    put(n.pid, {
+      up: parentPid ?? ancestorsDrawn[ancestorsDrawn.length - 1]?.pid,
+      down: n.children[0]?.pid, left: sib[i - 1]?.pid, right: sib[i + 1]?.pid, kids: n.children,
+    });
+    n.children.forEach((c) => walk(c, n.pid));
+  })(d.tree, null);
+  return nav;
+}
+
+// ---------------------------------------------------------------- search (жагсаалтын шүүлтүүрийг модон дээр тодруулах)
+function applyTreeSearch() {
+  const q = $("filter").value.trim().toLowerCase();
+  const svg = $("tree");
+  svg.classList.toggle("searching", q !== "");
+  let hits = 0;
+  svg.querySelectorAll("g.node").forEach((g) => {
+    const match = q !== "" && (g.dataset.pid.startsWith(q) || g.dataset.comm.includes(q));
+    g.classList.toggle("match", match);
+    hits += match;
+  });
+  $("search-hits").textContent = q ? `· модонд ${hits} таарсан` : "";
 }
 
 // ---------------------------------------------------------------- demo control (туршилт удирдах)
@@ -431,6 +491,73 @@ async function demoSignal(sig) {
     await api(`/api/demo/signal?pid=${t.pid}&sig=${sig}`, { method: "POST" });
     await select(String(t.pid), { push: false });
   } catch (e) { showError(e.message); }
+}
+
+// ---------------------------------------------------------------- export (тайланд дахин шалгаж болохуйц нотолгоо)
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Файлын нэрэнд орон нутгийн цаг: 2026-10-15-11-15-24
+const stamp = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+  .toISOString().replace(/[:T]/g, "-").slice(0, 19);
+
+/** Бүх түүхийг JSON болгоно — snapshot бүрийн тайлбар, diff, module-ийн түүхий гаралт, дуудлагын лог. */
+function exportHistory() {
+  if (!state.history.length) return showError("Экспортлох түүх алга — эхлээд PID сонгоно уу");
+  const brief = (n) => ({ pid: n.pid, comm: n.comm, state_char: n.state_char });
+  const out = {
+    project: "IV-2-2 · Linux Kernel Module for Task Information · Task Hierarchy UI",
+    exported_at: new Date().toISOString(),
+    status: $("status").textContent,
+    snapshots: state.history.map((h) => ({
+      time: h.time, note: h.note, pid: h.pid, comm: h.comm, depth: h.depth, nodes: h.nodes,
+      backend: h.data.backend, book_line: h.data.book_line,
+      diff: h.diff && {
+        added: h.diff.added.map(brief), removed: h.diff.removed.map(brief),
+        changed: h.diff.changed.map((c) => ({ ...brief(c.node), from: c.from, to: c.to })),
+      },
+      calls: h.data.calls, raw_pid_tree: h.data.raw,
+      ancestors: h.data.ancestors.map(brief), tree: stripLayout(h.data.tree),
+    })),
+  };
+  download(`task-hierarchy-history-${stamp()}.json`, JSON.stringify(out, null, 2), "application/json");
+}
+
+/** Одоогийн модыг бие даасан SVG файл болгоно (өнгө, загвар дотор нь). */
+function exportSvg() {
+  const src = $("tree");
+  if (!src.querySelector("g.node")) return showError("Экспортлох мод алга");
+  const css = getComputedStyle(document.documentElement);
+  const v = (name) => css.getPropertyValue(name).trim();
+  const [, , w, h] = src.getAttribute("viewBox").split(" ");
+  const svg = src.cloneNode(true);
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.querySelectorAll("title").forEach((t) => t.remove());
+  const style = document.createElementNS(SVG_NS, "style");
+  style.textContent = `
+    .edge{fill:none;stroke:${v("--edge")};stroke-width:1.5}.edge.up{stroke-dasharray:4 3}
+    .node rect.box{fill:${v("--node")};stroke-width:1.5}.node.unexpanded rect.box{stroke-dasharray:5 3}
+    .node.selected rect.box{stroke:${v("--sel")};stroke-width:3}
+    text{font-family:system-ui,"Segoe UI",sans-serif}.node text{fill:${v("--text")};font-size:12px}
+    .node text.sub{fill:${v("--muted")};font-size:11px;font-family:ui-monospace,Consolas,monospace}
+    .more,.label{fill:${v("--muted")};font-size:11px}
+    rect.grid-box{fill:none;stroke:${v("--edge")};stroke-dasharray:3 3}
+    .node rect.halo{fill:none;stroke-width:3}.node.added rect.halo{stroke:${v("--add")}}
+    .node.changed rect.halo{stroke:${v("--chg")}}
+    .tag{font-size:10px;font-weight:700}.tag-new{fill:${v("--add")}}.tag-chg{fill:${v("--chg")}}`;
+  const bg = document.createElementNS(SVG_NS, "rect");
+  Object.entries({ width: w, height: h, fill: v("--panel") }).forEach(([k, val]) => bg.setAttribute(k, val));
+  svg.prepend(style, bg);
+  const pid = state.view === null ? state.pid : state.history[state.view].pid;
+  download(`task-tree-pid${pid}-${stamp()}.svg`, new XMLSerializer().serializeToString(svg), "image/svg+xml");
 }
 
 // ---------------------------------------------------------------- scenario (процессын амьдралын мөчлөг)
@@ -535,7 +662,7 @@ function renderLegend() {
 // ---------------------------------------------------------------- init
 $("query-form").addEventListener("submit", (e) => { e.preventDefault(); select($("pid-input").value); });
 $("depth").addEventListener("change", () => { state.depth = +$("depth").value; if (state.pid !== null) select(String(state.pid)); });
-$("filter").addEventListener("input", renderProcList);
+$("filter").addEventListener("input", () => { renderProcList(); applyTreeSearch(); });
 $("auto").addEventListener("change", () => ($("auto").checked ? startAuto() : stopAuto()));
 $("interval").addEventListener("change", () => { if (state.timer) startAuto(); });
 $("demo-start").addEventListener("click", demoStart);
@@ -545,6 +672,8 @@ $("hist-prev").addEventListener("click", () => viewHistory((state.view ?? state.
 $("hist-next").addEventListener("click", () => viewHistory((state.view ?? state.history.length - 1) + 1));
 $("hist-live").addEventListener("click", backToLive);
 $("scenario").addEventListener("click", playScenario);
+$("export-json").addEventListener("click", exportHistory);
+$("export-svg").addEventListener("click", exportSvg);
 $("compact").addEventListener("change", () => {
   const v = currentView();
   if (v) drawTree(v.data, v.diff);

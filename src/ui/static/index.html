@@ -96,14 +96,15 @@
 
     <section class="panel tree-panel">
       <div class="tree-head">
-        <h2>Шатлал <span id="tree-meta" class="muted"></span></h2>
+        <h2>Шатлал <span id="tree-meta" class="muted"></span> <span id="search-hits" class="muted"></span></h2>
         <ul class="legend" id="legend"></ul>
       </div>
       <label class="check small"><input type="checkbox" id="compact"> Өвөг эцгийг товчлох (нэг мөрөнд)</label>
       <nav id="crumbs" class="crumbs" hidden aria-label="Өвөг эцгийн гинж"></nav>
       <div id="diff" class="diff" hidden></div>
       <div class="tree-scroll"><svg id="tree" role="img" aria-label="Task hierarchy"></svg></div>
-      <p class="hint">Зангилаа дээр дарж тэр task руу шилжинэ. Тасархай хүрээ — хүүхдүүдийг нь хараахан асуугаагүй.
+      <p class="hint">Зангилаа дээр дарж (эсвэл Tab → <kbd>↑</kbd> эцэг, <kbd>↓</kbd> хүүхэд, <kbd>←</kbd><kbd>→</kbd> ах дүү, <kbd>Enter</kbd>) тэр task руу шилжинэ.
+        Зүүн талын шүүлтүүр модон дээр ч тодруулна. Тасархай хүрээ — хүүхдүүдийг нь хараахан асуугаагүй.
         Ногоон гэрэлтэлт — <b>шинэ</b> процесс, шар — <b>төлөв өөрчлөгдсөн</b> (өмнөх шинэчлэлтээс хойш).</p>
     </section>
 
@@ -113,6 +114,8 @@
         <div class="row nomargin">
           <button type="button" id="hist-prev" title="Өмнөх snapshot">◀</button>
           <button type="button" id="hist-next" title="Дараах snapshot">▶</button>
+          <button type="button" id="export-json" title="Бүх түүхийг JSON (тайлбар, diff, module-ийн гаралт, лог) болгон татах">⤓ JSON</button>
+          <button type="button" id="export-svg" title="Одоогийн модыг SVG зураг болгон татах (тайлан, постерт)">⤓ SVG</button>
         </div>
       </div>
       <ol id="history" class="history"></ol>

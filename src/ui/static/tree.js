@@ -72,4 +72,10 @@ function diffTrees(oldTree, newTree) {
   return { added, removed, changed };
 }
 
-if (typeof module !== "undefined") module.exports = { TREE, layoutTree, flattenTree, diffTrees };
+/** Экспортын өмнө layout-ын туслах талбаруудыг (_x, _y, _grid, _inGrid) хасна — эх модыг өөрчлөхгүй. */
+function stripLayout(n) {
+  const { _x, _y, _grid, _inGrid, children, ...rest } = n;
+  return { ...rest, children: (children || []).map(stripLayout) };
+}
+
+if (typeof module !== "undefined") module.exports = { TREE, layoutTree, flattenTree, diffTrees, stripLayout };

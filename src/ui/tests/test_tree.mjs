@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { TREE, layoutTree, flattenTree, diffTrees } = require("../static/tree.js");
+const { TREE, layoutTree, flattenTree, diffTrees, stripLayout } = require("../static/tree.js");
 
 const STEP = TREE.NODE_W + TREE.H_GAP;
 const ROW = TREE.NODE_H + TREE.V_GAP;
@@ -117,6 +117,16 @@ test("diffTrees — шинэ, алга болсон, төлөв өөрчлөгд
   assert.deepEqual(d.added.map((n) => n.pid), [c.pid]);
   assert.deepEqual(d.removed.map((n) => n.pid), [b.pid]);
   assert.deepEqual(d.changed.map((x) => [x.node.pid, x.from, x.to]), [[a.pid, "S", "T"]]);
+});
+
+test("stripLayout — экспортод layout талбар үлдэхгүй, эх мод өөрчлөгдөхгүй", () => {
+  const t = node([node(leaves(8)), node()]);
+  layoutTree(t);
+  const s = stripLayout(t);
+  const json = JSON.stringify(s);
+  assert.ok(!/"_(x|y|grid|inGrid)"/.test(json), json.slice(0, 120));
+  assert.equal(s.children[0].children.length, 8);
+  assert.ok("_x" in t && "_grid" in t.children[0]);           // эх мод хэвээр
 });
 
 test("diffTrees — ижил мод бол хоосон", () => {

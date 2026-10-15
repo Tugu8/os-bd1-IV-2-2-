@@ -112,6 +112,11 @@ button.danger:hover { background: var(--del); color: #fff; }
 .diff .chg { background: color-mix(in srgb, var(--chg) 18%, transparent); color: var(--chg); }
 .diff .del { background: color-mix(in srgb, var(--del) 15%, transparent); color: var(--del); }
 
+svg .node:focus { outline: none; }
+svg .node:focus-visible rect.box { stroke: var(--accent); stroke-width: 3.5; }
+svg.searching .node:not(.match) { opacity: .35; }
+svg .node.match rect.box { stroke: var(--accent); stroke-width: 3; }
+kbd { font: 11px ui-monospace, Consolas, monospace; padding: 0 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--code-bg); }
 svg rect.grid-box { fill: color-mix(in srgb, var(--accent) 5%, transparent); stroke: var(--edge); stroke-dasharray: 3 3; }
 svg .node rect.halo { fill: none; stroke-width: 3; }
 svg .node.added rect.halo { stroke: var(--add); filter: drop-shadow(0 0 4px var(--add)); }
