@@ -24,11 +24,26 @@ WSL2 дээр Windows-ийн браузераас шууд `http://localhost:800
 | **Task hierarchy мод** (SVG): өвөг эцгийн гинж (PID 1 хүртэл) → сонгосон task → хүү процессууд (гүн 0–4) | "Шатлал" |
 | State-ийн өнгө: R ногоон, S цэнхэр, D улбар шар, T саарал, Z улаан, I цайвар + legend | мод, жагсаалт |
 | Refresh: автомат шинэчлэх (1/2/5 с) — жнь R↔S өөрчлөлт харагдана | зүүн самбар |
-| Reset: бүх төлөвийг цэвэрлэнэ | зүүн самбар |
-| Demo мод: мэдэгдэж буй бүтэцтэй туршилтын процессууд (S, R/S, T, Z, 5 урсгалтай) — `demo_tree.py` | "Demo мод үүсгэх / зогсоох" |
-| Алдааны мэдэгдэл: буруу оролт (`abc`, `-5`, хэт том), байхгүй PID, module ачаалагдаагүй | улаан banner |
+| **Өөрчлөлтийг тодруулах:** шинэчлэлт бүрийг өмнөхтэй харьцуулна — шинэ процесс (ногоон + "шинэ"), төлөв өөрчлөгдсөн (шар + "S→T"), алга болсон (улаан chip) | мод, "Шатлал"-ын дээр |
+| **Түүх, алхамчлал:** snapshot бүр (сүүлийн 50) — ◀ ▶ эсвэл дарж эргэн харах, "Live руу буцах" | "Түүх" |
+| **▶ Сценари:** процессын амьдралын мөчлөг — fork → SIGSTOP (T) → SIGCONT → SIGTERM (Z, эцэг wait() хийгээгүй) → wait() (Z арилна), алхам бүр тайлбартай Түүхэнд | зүүн самбар |
+| **Туршилт удирдах:** demo_root-д `+ Хүү процесс` (fork), `+ Zombie`, `wait() — цэвэрлэх`; сонгосон demo процесст STOP / CONT / KILL — **зөвхөн demo процессын бүлэгт** (бусад PID → 403) | "Туршилт удирдах" |
+| **Module дуудлагын лог:** хүсэлт бүрийн write `/proc/pid` → read `/proc/pid` → read `/proc/pid_tree` (байт, µs) — UI бодит module-ийг ашигладгийн нотолгоо | доод хэсэг |
+| Өвөг эцгийг товчлох — гинжийг нэг мөр (дарж болох) болгоно; том мод самбарт багтахаар жижгэрнэ (60% хүртэл) | "Шатлал" |
+| Reset: бүх төлөв, түүхийг цэвэрлэнэ | зүүн самбар |
+| Demo мод: мэдэгдэж буй бүтэцтэй туршилтын процессууд (S, R/S, T, Z, 5 урсгалтай) — `demo_tree.py`; сервер зогсоход (kill -9 ч) өөрөө цэвэрлэгдэнэ | "Demo мод үүсгэх / зогсоох" |
+| Алдааны мэдэгдэл: буруу оролт (`abc`, `-5`, хэт том), байхгүй PID, module ачаалагдаагүй; сүлжээний түр алдаанд нэг удаа дахин оролдож өмнөх дүрслэлийг хадгална | улаан banner |
 | Module-ийн түүхий гаралт (`cat /proc/pid_tree`) — дүрслэл бодит өгөгдөлтэй нийцэхийг шалгах | доод хэсэг |
-| URL параметр: `?pid=1&depth=2&auto=1&raw=1&demo=1` — шууд холбоос, screenshot | |
+| URL параметр: `?pid=1&depth=2&auto=1&raw=1&calls=1&compact=1&demo=1&scenario=1&view=N` — шууд холбоос, screenshot | |
+
+## Screenshot (бодит, module ачаалсан — WSL2 6.6.87.2)
+
+| | |
+|---|---|
+| ![Demo мод](screenshots/demo_tree.png) | ![Сценари 2: fork — шинэ процесс](screenshots/step2_spawn.png) |
+| Demo мод (depth=1): T, Z, 5 урсгал, өвөг эцгийн гинж | Сценари 2-р алхам: `demo_new_1` шинээр үүссэн (ногоон), `demo_busy` S→R |
+| ![Сценари 5: zombie](screenshots/step5_zombie.png) | ![Түүх ба лог](screenshots/step6_history_calls.png) |
+| 5-р алхам: SIGTERM → `demo_new_1` S→Z (эцэг wait() хийгээгүй) | 6-р алхам: wait() → zombie-ууд алга; тайлбартай Түүх, Module дуудлагын лог |
 
 ## Kernel module-тай тохирох интерфейс (санал — `src/kmod`-тай тохиролцоно)
 
@@ -70,14 +85,29 @@ Kernel module бэлэн болохоос өмнө UI-г хөгжүүлэх/ту
 | `GET /api/status` | `module_loaded`, backend, кернел, demo root |
 | `GET /api/task?pid=N&depth=D` | `book_line`, `task`, `ancestors[]`, `tree` (D түвшин), `raw`, `nodes`, `queries`, `elapsed_ms` · алдаа: 400 (буруу оролт), 404 (байхгүй PID), 503 (module байхгүй) |
 | `GET /api/processes` | `[{pid, ppid, comm, state_char}]` — сонгох жагсаалт |
-| `POST /api/demo`, `POST /api/demo/stop` | туршилтын процессын мод |
+| `POST /api/demo`, `POST /api/demo/stop` | туршилтын процессын мод эхлүүлэх / зогсоох |
+| `POST /api/demo/spawn` · `/zombie` · `/reap` | demo_root-д SIGUSR1 (fork шинэ хүү) · SIGUSR2 (шууд дуусах хүү → Z) · SIGHUP (wait() → Z цэвэрлэх) |
+| `POST /api/demo/signal?pid=N&sig=STOP\|CONT\|TERM` | demo процесст signal; demo биш → **403**, demo_root / өөр signal → 400, demo ажиллаагүй → 409 |
+
+`/api/task`-ийн хариунд мөн `calls` (module-тэй хийсэн write/read бүр), `demo_root`, зангилаа бүрт `demo` (тухайн процесс demo бүлгийнх эсэх) байна.
 
 ## Тест
 
 ```bash
-python3 -m unittest -v src/ui/tests/test_api.py    # 10 тест; module байхгүй бол fallback горимоор
+python3 -m unittest -v src/ui/tests/test_api.py    # 16 тест; module байхгүй бол fallback горимоор
 ```
-Статус, PID 1, demo модны бүтэц (5 хүүхэд, Z/T, 5 урсгал), depth=0, буруу оролт → 400, байхгүй PID → 404, буруу depth, процессын жагсаалт, static/path traversal, зэрэг хүсэлтийн тууштай байдал.
+| № | Шалгах зүйл |
+|---|---|
+| 01–09 | статус, PID 1 (номын формат), demo модны бүтэц (5 хүүхэд, Z/T, 5 урсгал), depth=0, буруу оролт → 400, байхгүй PID → 404, буруу depth, процессын жагсаалт, static/path traversal |
+| 10 | 2 урсгал × 15 зэрэг хүсэлт — бүгд өөрийн PID (мутекс) |
+| 11 | гүний түвшин: depth=1 → хүүхдүүд асуугдсан, ач нар навч |
+| 12 | Module дуудлагын лог: write `/proc/pid` → read `/proc/pid` → read `/proc/pid_tree` |
+| 13 | demo тэмдэглэгээ (demo мод = true, PID 1 = false) |
+| 14 | `+ Хүү процесс` → demo_new_N, `+ Zombie` → Z |
+| 15 | амьдралын мөчлөг: STOP → **T**, CONT → S/R, TERM → **Z**, wait() → алга, zombie 0 |
+| 16 | аюулгүй байдал: PID 1 руу signal → **403**, demo_root → 400, KILL signal → 400, `abc` → 400 |
+
+Туршсан: WSL2 Ubuntu 22.04 (kernel 6.6.87.2) — module ачаалсан **16/16**, fallback горим **16/16**.
 
 ## Файлууд
 
