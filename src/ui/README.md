@@ -31,14 +31,15 @@ WSL2 дээр Windows-ийн браузераас шууд `http://localhost:800
 | **Туршилт удирдах:** demo_root-д `+ Хүү процесс` (fork), `+ Zombie`, `wait() — цэвэрлэх`; сонгосон demo процесст STOP / CONT / KILL — **зөвхөн demo процессын бүлэгт** (бусад PID → 403) | "Туршилт удирдах" |
 | **Module дуудлагын лог:** хүсэлт бүрийн write `/proc/pid` → read `/proc/pid` → read `/proc/pid_tree` (байт, µs) — UI бодит module-ийг ашигладгийн нотолгоо | доод хэсэг |
 | Өвөг эцгийг товчлох — гинжийг нэг мөр (дарж болох) болгоно; том мод самбарт багтахаар жижгэрнэ (60% хүртэл); ≥ 7 навч хүүхдийг 6 баганатай сүлжээнд | "Шатлал" |
-| **Экспорт:** `⤓ JSON` — бүх түүх (тайлбар, diff, `/proc/pid_tree`-ийн түүхий гаралт, дуудлагын лог); `⤓ SVG` — одоогийн мод бие даасан зураг (тайлан, постерт) | "Түүх" |
-| **Гарын товч:** Tab → <kbd>↑</kbd> эцэг, <kbd>↓</kbd> эхний хүүхэд, <kbd>←</kbd><kbd>→</kbd> ах дүү, <kbd>Enter</kbd> сонгох; зангилаа бүр `aria-label`-тай | мод |
+| **Газар дээр нь нээх:** тасархай зангилааны **⊕** — сонгосон task-ийг солилгүй тэр процессын хүүхдүүдийг нэг түвшнээр нээнэ, **⊖** — хаана (zombie-д ⊕ гарахгүй, хүүхэдгүй бол "хүүхэдгүй"); нээх/хаах нь "шинэ процесс" гэж тодрохгүй | мод |
+| **Экспорт:** `⤓ JSON` — бүх түүх (тайлбар, diff, `/proc/pid_tree`-ийн түүхий гаралт, дуудлагын лог); `⤓ SVG` — одоогийн мод бие даасан зураг; `⤓ PNG` — 2× тод зураг (Word, Teams, постерт шууд) | "Түүх" |
+| **Гарын товч:** Tab → <kbd>↑</kbd> эцэг, <kbd>↓</kbd> эхний хүүхэд, <kbd>←</kbd><kbd>→</kbd> ах дүү, <kbd>Enter</kbd> сонгох, <kbd>+</kbd> / <kbd>−</kbd> газар дээр нь нээх / хаах; зангилаа бүр `aria-label`, `aria-expanded`-тай | мод |
 | **Хайлт:** зүүн талын шүүлтүүр модон дээр таарсан зангилааг тодруулж, бусдыг бүдгэрүүлнэ ("модонд N таарсан") | мод |
 | Reset: бүх төлөв, түүхийг цэвэрлэнэ | зүүн самбар |
 | Demo мод: мэдэгдэж буй бүтэцтэй туршилтын процессууд (S, R/S, T, Z, 5 урсгалтай) — `demo_tree.py`; сервер зогсоход (kill -9 ч) өөрөө цэвэрлэгдэнэ | "Demo мод үүсгэх / зогсоох" |
 | Алдааны мэдэгдэл: буруу оролт (`abc`, `-5`, хэт том), байхгүй PID, module ачаалагдаагүй; сүлжээний түр алдаанд нэг удаа дахин оролдож өмнөх дүрслэлийг хадгална | улаан banner |
 | Module-ийн түүхий гаралт (`cat /proc/pid_tree`) — дүрслэл бодит өгөгдөлтэй нийцэхийг шалгах | доод хэсэг |
-| URL параметр: `?pid=1&depth=2&auto=1&raw=1&calls=1&compact=1&demo=1&scenario=1&view=N` — шууд холбоос, screenshot | |
+| URL параметр: `?pid=1&depth=2&expand=12,34&auto=1&raw=1&calls=1&compact=1&demo=1&scenario=1&view=N` — шууд холбоос, screenshot | |
 
 ## Screenshot (бодит, module ачаалсан — WSL2 6.6.87.2)
 
@@ -48,6 +49,8 @@ WSL2 дээр Windows-ийн браузераас шууд `http://localhost:800
 | Demo мод (depth=1): T, Z, 5 урсгал, өвөг эцгийн гинж | Сценари 2-р алхам: `demo_new_1` шинээр үүссэн (ногоон), `demo_busy` S→R |
 | ![Сценари 5: zombie](screenshots/step5_zombie.png) | ![Түүх ба лог](screenshots/step6_history_calls.png) |
 | 5-р алхам: SIGTERM → `demo_new_1` S→Z (эцэг wait() хийгээгүй) | 6-р алхам: wait() → zombie-ууд алга; тайлбартай Түүх, Module дуудлагын лог |
+| ![Газар дээр нь нээх](screenshots/expand_in_place.png) | |
+| Газар дээр нь нээх: depth 0, `demo_sleeper` ⊖ (нээсэн) — сонголт `demo_root` хэвээр; товчилсон өвөг эцэг; zombie-д ⊕ байхгүй | |
 
 ## Kernel module-тай тохирох интерфейс (санал — `src/kmod`-тай тохиролцоно)
 
@@ -110,7 +113,7 @@ python3 src/ui/contract_check.py       # ✔ / ⚠ / ✖ хүснэгт; ✖ б�
 | Endpoint | Хариу |
 |---|---|
 | `GET /api/status` | `mode` (`module` / `book` / `fallback` / null), `module_loaded` (`/proc/pid` бий эсэх), `tree_file`, backend, кернел, demo root |
-| `GET /api/task?pid=N&depth=D` | `book_line`, `task`, `ancestors[]`, `tree` (D түвшин), `raw`, `mode`, `nodes`, `queries`, `elapsed_ms` · алдаа: 400 (буруу оролт), 404 (байхгүй PID), 502 (`/proc/pid` формат буруу), 503 (module байхгүй) |
+| `GET /api/task?pid=N&depth=D[&expand=A,B]` | `book_line`, `task`, `ancestors[]`, `tree` (D түвшин + `expand` дахь зангилааг нэг түвшнээр), `expand`, `raw`, `mode`, `nodes`, `queries`, `elapsed_ms` · алдаа: 400 (буруу оролт, `expand` > 64), 404 (байхгүй PID), 502 (`/proc/pid` формат буруу), 503 (module байхгүй) |
 | `GET /api/processes` | `[{pid, ppid, comm, state_char}]` — сонгох жагсаалт |
 | `POST /api/demo`, `POST /api/demo/stop` | туршилтын процессын мод эхлүүлэх / зогсоох |
 | `POST /api/demo/spawn` · `/zombie` · `/reap` | demo_root-д SIGUSR1 (fork шинэ хүү) · SIGUSR2 (шууд дуусах хүү → Z) · SIGHUP (wait() → Z цэвэрлэх) |
@@ -121,8 +124,8 @@ python3 src/ui/contract_check.py       # ✔ / ⚠ / ✖ хүснэгт; ✖ б�
 ## Тест
 
 ```bash
-python3 -m unittest -v src/ui/tests/test_api.py    # 22 тест; module байхгүй бол fallback горимоор
-node --test src/ui/tests/test_tree.mjs             # 10 тест — модны байрлал, diff, экспорт (Node 18+, заавал биш)
+python3 -m unittest -v src/ui/tests/test_api.py    # 24 тест; module байхгүй бол fallback горимоор
+node --test src/ui/tests/test_tree.mjs             # 12 тест — модны байрлал, diff, экспорт (Node 18+, заавал биш)
 ```
 | № | Шалгах зүйл |
 |---|---|
@@ -137,8 +140,10 @@ node --test src/ui/tests/test_tree.mjs             # 10 тест — модны 
 | 17–18 | задлагч: номын мөр (тоо/үсэг state, `comm`-д `]`, буруу формат → None), `/proc/pid_tree`-д зай, `=`, `\|` агуулсан `comm` |
 | 19–21 | горим: `fallback`, module-гүй → 503, `/proc/pid` формат буруу → 502 (зам түр сольж, module-оос үл хамаарна) |
 | 22 | `book` горим = `module` горим: PID 1-ийн task талбарууд, хүүхдүүд, өвөг эцгийн гинж ижил (module шаардлагатай) |
+| 23 | газар дээр нь нээх: depth=0 + `expand=demo_sleeper` → зөвхөн тэр зангилаа нээгдэж, ач нар навч (2 module асуулга); модонд байхгүй PID-ийг үл тооно |
+| 24 | буруу `expand` (`abc`, `1,,2`, `-3`, 65 PID) → 400 |
 
-Туршсан: WSL2 Ubuntu 22.04 (kernel 6.6.87.2) — `pid.ko` ачаалсан **22/22**, `book_ok.ko` (book горим) **21/21** + 1 алгассан, module-гүй (fallback) **21/21** + 1 алгассан.
+Туршсан: WSL2 Ubuntu 22.04 (kernel 6.6.87.2) — `pid.ko` ачаалсан **24/24**, `book_ok.ko` (book горим) **23/23** + 1 алгассан, module-гүй (fallback) **23/23** + 1 алгассан. Node **12/12**.
 
 ## Файлууд
 
@@ -149,9 +154,9 @@ node --test src/ui/tests/test_tree.mjs             # 10 тест — модны 
 | `static/index.html`, `app.js`, `style.css` | UI: төлөв, түүх, сценари, туршилт удирдах, SVG зурах, legend |
 | `static/tree.js` | DOM-гүй логик: `layoutTree()` (tidy tree + олон навчийг сүлжээ), `diffTrees()` |
 | `demo_tree.py` | Туршилтын процессын мод (`demo_root` → sleeper/busy/stopped/threads/zombie) |
-| `tests/test_api.py` | API, задлагч, горимын тест (unittest, 22) |
+| `tests/test_api.py` | API, задлагч, горимын тест (unittest, 24) |
 | `tests/book_modules/` | Туршилтын module: зөвхөн `/proc/pid` — `book_ok` (зөв), `book_naive` (номын skeleton-ий алдаатай хэв маяг); src/kmod-ийг орлохгүй |
-| `tests/test_tree.mjs` | Модны байрлал, diff, экспорт тест (Node, 10) |
+| `tests/test_tree.mjs` | Модны байрлал, diff (нээх/хаах), экспорт тест (Node, 12) |
 | `REPORT_UI.md` | Тайлангийн UI хэсэг (зохиомж, хэрэгжилт, туршилт, үр дүн, хэлэлцүүлэг) + manual-д зориулсан хэсэг |
 
 ## AI ашиглалт
