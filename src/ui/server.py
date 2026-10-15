@@ -424,8 +424,9 @@ def main():
     srv = make_server(args.host, args.port, args.fallback)
     state = "loaded" if ModuleBackend.available() else ("NOT loaded → fallback" if args.fallback
                                                         else "NOT loaded")
-    print(f"kernel module (/proc/pid): {state}")
-    print(f"Task Hierarchy UI: http://localhost:{args.port}   (Ctrl+C — зогсоох)")
+    # flush — гаралтыг файл руу чиглүүлсэн үед ч (жнь > server.log) шууд харагдана
+    print(f"kernel module (/proc/pid): {state}", flush=True)
+    print(f"Task Hierarchy UI: http://localhost:{args.port}   (Ctrl+C — зогсоох)", flush=True)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
