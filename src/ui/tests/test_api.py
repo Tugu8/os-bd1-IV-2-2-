@@ -125,6 +125,77 @@ class ApiTest(unittest.TestCase):
         [t.join() for t in ts]
         self.assertEqual(results, {1: 15, self.root: 15})
 
+    # ---- шинэ боломжууд: гүн, лог, туршилт удирдах ----------------------
+    # (11-ээс хойшх тест demo модыг өөрчилдөг тул бүтцийн тестүүдийн дараа ажиллана)
+
+    def children(self, depth=0):
+        s, b = call(self.base, f"/api/task?pid={self.root}&depth={depth}")
+        self.assertEqual(s, 200, b)
+        return {c["comm"]: c for c in b["tree"]["children"]}, b
+
+    def test_11_depth_levels(self):
+        kids, _ = self.children(depth=1)
+        sleeper = kids["demo_sleeper"]
+        self.assertFalse(sleeper.get("unexpanded"))               # depth=1 → хүүхдүүд асуугдсан
+        self.assertTrue(all(c.get("unexpanded") for c in sleeper["children"]))  # ач нар — навч
+
+    def test_12_calls_log(self):
+        _, b = self.children()
+        if MODULE:
+            self.assertEqual([(c["op"], c["path"]) for c in b["calls"]],
+                             [("write", "/proc/pid"), ("read", "/proc/pid"), ("read", "/proc/pid_tree")])
+            self.assertEqual(b["calls"][0]["data"], f"{self.root}\\n")
+        else:
+            self.assertEqual(len(b["calls"]), 1)
+
+    def test_13_demo_flags(self):
+        kids, b = self.children()
+        self.assertTrue(b["tree"]["demo"])
+        self.assertTrue(all(c["demo"] for c in kids.values()))
+        _, pid1 = call(self.base, "/api/task?pid=1&depth=0")
+        self.assertFalse(pid1["tree"]["demo"])
+
+    def test_14_spawn_and_zombie(self):
+        before, _ = self.children()
+        self.assertEqual(call(self.base, "/api/demo/spawn", "POST")[0], 200)
+        self.assertEqual(call(self.base, "/api/demo/zombie", "POST")[0], 200)
+        after, _ = self.children()
+        new = set(after) - set(before)
+        self.assertTrue(any(n.startswith("demo_new_") for n in new), new)
+        zomb = [after[n] for n in new if n.startswith("demo_zomb_")]
+        self.assertEqual(len(zomb), 1)
+        self.assertEqual(zomb[0]["state_char"], "Z")
+
+    def test_15_signal_lifecycle(self):
+        call(self.base, "/api/demo/spawn", "POST")
+        kids, _ = self.children()
+        pid = max(c["pid"] for n, c in kids.items() if n.startswith("demo_new_"))
+
+        def state_of(p):
+            return {c["pid"]: c["state_char"] for c in self.children()[0].values()}.get(p)
+
+        self.assertEqual(call(self.base, f"/api/demo/signal?pid={pid}&sig=STOP", "POST")[0], 200)
+        self.assertEqual(state_of(pid), "T")
+        self.assertEqual(call(self.base, f"/api/demo/signal?pid={pid}&sig=CONT", "POST")[0], 200)
+        self.assertIn(state_of(pid), ("S", "R"))
+        self.assertEqual(call(self.base, f"/api/demo/signal?pid={pid}&sig=TERM", "POST")[0], 200)
+        self.assertEqual(state_of(pid), "Z")                       # эцэг wait() хийгээгүй → zombie
+        self.assertEqual(call(self.base, "/api/demo/reap", "POST")[0], 200)
+        self.assertIsNone(state_of(pid))                           # wait() → zombie арилсан
+        zombies = [c for c in self.children()[0].values() if c["state_char"] == "Z"]
+        self.assertEqual(zombies, [])
+
+    def test_16_signal_security(self):
+        s, b = call(self.base, "/api/demo/signal?pid=1&sig=TERM", "POST")
+        self.assertEqual(s, 403, b)                                # demo биш процесс
+        s, _ = call(self.base, f"/api/demo/signal?pid={self.root}&sig=STOP", "POST")
+        self.assertEqual(s, 400)                                   # demo_root
+        kids, _ = self.children()
+        s, _ = call(self.base, f"/api/demo/signal?pid={kids['demo_sleeper']['pid']}&sig=KILL", "POST")
+        self.assertEqual(s, 400)                                   # зөвшөөрөгдөөгүй signal
+        s, _ = call(self.base, "/api/demo/signal?pid=abc&sig=STOP", "POST")
+        self.assertEqual(s, 400)
+
 
 if __name__ == "__main__":
     print("backend:", "kernel module" if MODULE else "procfs fallback")
