@@ -112,6 +112,7 @@ button.danger:hover { background: var(--del); color: #fff; }
 .diff .chg { background: color-mix(in srgb, var(--chg) 18%, transparent); color: var(--chg); }
 .diff .del { background: color-mix(in srgb, var(--del) 15%, transparent); color: var(--del); }
 
+svg rect.grid-box { fill: color-mix(in srgb, var(--accent) 5%, transparent); stroke: var(--edge); stroke-dasharray: 3 3; }
 svg .node rect.halo { fill: none; stroke-width: 3; }
 svg .node.added rect.halo { stroke: var(--add); filter: drop-shadow(0 0 4px var(--add)); }
 svg .node.changed rect.halo { stroke: var(--chg); filter: drop-shadow(0 0 4px var(--chg)); }

@@ -7,7 +7,9 @@ const STATES = {
   R: "running", S: "sleeping", D: "disk sleep", T: "stopped", t: "tracing stop",
   Z: "zombie", I: "idle", X: "dead",
 };
-const NODE_W = 160, NODE_H = 50, H_GAP = 14, V_GAP = 54, ANC_GAP = 18, PAD = 24;
+// Байрлалын тогтмол, layoutTree(), diffTrees() — static/tree.js
+const { NODE_W, NODE_H, V_GAP } = TREE;
+const ANC_GAP = 18, PAD = 24;
 const HISTORY_MAX = 50;
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -152,25 +154,7 @@ function clearView() {
   updateDemoControls();
 }
 
-// ---------------------------------------------------------------- diff (өмнөх шинэчлэлттэй харьцуулах)
-function flatten(tree) {
-  const m = new Map();
-  (function walk(n) { m.set(n.pid, n); n.children.forEach(walk); })(tree);
-  return m;
-}
-
-function diffTrees(oldTree, newTree) {
-  const before = flatten(oldTree), after = flatten(newTree);
-  const added = [], removed = [], changed = [];
-  for (const [pid, n] of after) {
-    const o = before.get(pid);
-    if (!o) added.push(n);
-    else if (o.state_char !== n.state_char) changed.push({ node: n, from: o.state_char, to: n.state_char });
-  }
-  for (const [pid, o] of before) if (!after.has(pid)) removed.push(o);
-  return { added, removed, changed };
-}
-
+// ---------------------------------------------------------------- diff (өмнөх шинэчлэлттэй харьцуулах — diffTrees: tree.js)
 function renderDiff(diff) {
   const box = $("diff");
   if (!diff || (!diff.added.length && !diff.removed.length && !diff.changed.length)) {
@@ -306,24 +290,18 @@ function drawTree(d, diff) {
   const added = new Set((diff?.added || []).map((n) => n.pid));
   const changed = new Map((diff?.changed || []).map((c) => [c.node.pid, c]));
 
-  // 1) Хүү процессын модыг байрлуулах: навч бүрт дараалсан x, эцэг — хүүхдүүдийнхээ дунд
-  let nextX = 0, maxDepth = 0;
-  (function layout(n, depth) {
-    n._depth = depth; maxDepth = Math.max(maxDepth, depth);
-    if (!n.children.length) { n._x = nextX; nextX += NODE_W + H_GAP; return; }
-    n.children.forEach((c) => layout(c, depth + 1));
-    n._x = (n.children[0]._x + n.children[n.children.length - 1]._x) / 2;
-  })(d.tree, 0);
+  // 1) Хүү процессын мод: layoutTree() (tree.js) — олон навч хүүхдийг сүлжээ болгоно
+  const size = layoutTree(d.tree);
 
   // 2) Өвөг эцгүүд (PID 1 → ... → эцэг) сонгосон task-ийн дээр нэг баганад,
   //    эсвэл "товчлох" үед модны дээр нэг мөр (breadcrumb)
   const compact = $("compact").checked;
   renderCrumbs(d, compact);
   const ancestors = compact ? [] : [...d.ancestors].reverse();
-  const rowH = NODE_H + V_GAP, ancH = NODE_H + ANC_GAP;
+  const ancH = NODE_H + ANC_GAP;
   const selY = PAD + 14 + ancestors.length * ancH + (ancestors.length ? V_GAP - ANC_GAP : 0);
-  const width = Math.max(nextX - H_GAP, NODE_W) + PAD * 2;
-  const height = selY + (maxDepth + 1) * rowH - V_GAP + PAD + 16;
+  const width = size.width + PAD * 2;
+  const height = selY + size.height + PAD + 16;
   // Самбарт багтахгүй бол viewBox-оор жижигрүүлнэ (60%-иас доош бол гүйлгэх мөр)
   const avail = svg.parentElement.clientWidth - 4;
   const scale = avail > 0 ? Math.max(0.6, Math.min(1, avail / width)) : 1;
@@ -331,9 +309,10 @@ function drawTree(d, diff) {
   svg.setAttribute("height", Math.round(height * scale));
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
-  const edges = el("g"), nodes = el("g");
-  svg.append(edges, nodes);
+  const grids = el("g"), edges = el("g"), nodes = el("g");
+  svg.append(grids, edges, nodes);
   const cx = (n) => PAD + n._x + NODE_W / 2;
+  const Y = (n) => selY + n._y;
 
   if (ancestors.length) nodes.append(el("text", { x: PAD, y: PAD, class: "label" }, "Өвөг эцгүүд (real_parent)"));
   ancestors.forEach((a, i) => {
@@ -345,17 +324,34 @@ function drawTree(d, diff) {
   });
 
   (function draw(n) {
-    const y = selY + n._depth * rowH;
+    const y = Y(n);
     drawNode(nodes, n, PAD + n._x, y, {
-      selected: n._depth === 0, isNew: added.has(n.pid), change: changed.get(n.pid),
+      selected: n === d.tree, isNew: added.has(n.pid), change: changed.get(n.pid),
     });
-    n.children.forEach((c) => {
-      edges.append(link(cx(n), y + NODE_H, cx(c), y + rowH));
-      draw(c);
-    });
+    if (n._grid) {
+      // Олон навч хүүхэд: нэг хүрээнд сүлжээ, эцгээс хүрээ рүү ганц шугам
+      const g = n._grid, gx = PAD + g.x - 8, gy = selY + g.y - 8;
+      grids.append(el("rect", { class: "grid-box", x: gx, y: gy, width: g.width + 16, height: g.height + 16, rx: 10 }));
+      grids.append(el("text", { x: gx + 8, y: gy - 6, class: "label" }, `${n.children.length} хүүхэд`));
+      edges.append(link(cx(n), y + NODE_H, gx + (g.width + 16) / 2, gy));
+      n.children.forEach(draw);
+    } else {
+      n.children.forEach((c) => {
+        edges.append(link(cx(n), y + NODE_H, cx(c), Y(c)));
+        draw(c);
+      });
+    }
     const hidden = (n.child_count || 0) - n.children.length + (n.truncated ? 1 : 0);
     if (hidden > 0) nodes.append(el("text", { x: cx(n), y: y + NODE_H + 14, "text-anchor": "middle", class: "more" }, `+${hidden} харуулаагүй`));
   })(d.tree);
+
+  // Шинэ task сонгоход сонгосон зангилааг хэвтээ тэнхлэгт голлуулна (утас, өргөн мод);
+  // ижил task-ийг автоматаар шинэчлэхэд хэрэглэгчийн гүйлгэсэн байрлалыг хадгална.
+  if (state.centeredPid !== d.task.pid) {
+    const sc = svg.parentElement;
+    sc.scrollLeft = Math.max(0, cx(d.tree) * scale - sc.clientWidth / 2);
+    state.centeredPid = d.task.pid;
+  }
 }
 
 function renderCrumbs(d, compact) {
