@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Hierarchy — IV-2-2</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">⎇</span>
+    <div>
+      <h1>Task Hierarchy</h1>
+      <p>Kernel module /proc/pid · OSC Ch.3 Project 2 · F.CSM302 · IV-2-2</p>
+    </div>
+  </div>
+  <div id="status" class="pill pill-unknown" title="Backend">шалгаж байна…</div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar">
+    <section class="panel">
+      <h2>Task сонгох</h2>
+      <form id="query-form" class="row">
+        <input id="pid-input" type="text" inputmode="numeric" placeholder="PID (жнь 1)" autocomplete="off" aria-label="PID">
+        <button type="submit" class="primary">Харах</button>
+      </form>
+      <label class="field">Хүү процессын гүн
+        <select id="depth">
+          <option value="0">0 — зөвхөн шууд хүүхдүүд</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </label>
+      <div class="row wrap">
+        <button type="button" data-pid="1">PID 1</button>
+        <button type="button" id="demo-start">Demo мод үүсгэх</button>
+        <button type="button" id="demo-stop">Demo зогсоох</button>
+        <button type="button" id="reset">Reset</button>
+      </div>
+      <label class="check"><input type="checkbox" id="auto"> Автомат шинэчлэх
+        <select id="interval"><option value="1000">1 с</option><option value="2000" selected>2 с</option><option value="5000">5 с</option></select>
+      </label>
+    </section>
+
+    <section class="panel grow">
+      <h2>Процессууд <span id="proc-count" class="muted"></span></h2>
+      <input id="filter" type="search" placeholder="PID эсвэл нэрээр шүүх" aria-label="Шүүх">
+      <ul id="proc-list" class="proc-list"></ul>
+    </section>
+  </aside>
+
+  <section class="content">
+    <div id="error" class="banner error" hidden></div>
+    <div id="fallback" class="banner warn" hidden>⚠ Нөөц горим: өгөгдлийг kernel module биш <code>/proc/&lt;pid&gt;/stat</code>-аас уншиж байна.</div>
+
+    <div class="cards">
+      <section class="panel book">
+        <h2>Номын интерфейс</h2>
+        <pre id="book"><span class="muted">PID сонгоно уу</span></pre>
+      </section>
+      <section class="panel">
+        <h2>Task мэдээлэл</h2>
+        <dl id="info" class="info"></dl>
+      </section>
+    </div>
+
+    <section class="panel tree-panel">
+      <div class="tree-head">
+        <h2>Шатлал <span id="tree-meta" class="muted"></span></h2>
+        <ul class="legend" id="legend"></ul>
+      </div>
+      <div class="tree-scroll"><svg id="tree" role="img" aria-label="Task hierarchy"></svg></div>
+      <p class="hint">Зангилаа дээр дарж тэр task руу шилжинэ. Тасархай хүрээ — хүүхдүүдийг нь хараахан асуугаагүй (дарж нээнэ).</p>
+    </section>
+
+    <details class="panel raw">
+      <summary>Module-ийн түүхий гаралт — <code>cat /proc/pid_tree</code></summary>
+      <pre id="raw"></pre>
+    </details>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
