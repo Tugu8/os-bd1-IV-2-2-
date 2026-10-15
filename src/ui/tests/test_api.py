@@ -5,10 +5,13 @@ UI серверийн API тест (Python unittest, нэмэлт сан шаа�
     python3 -m unittest -v src/ui/tests/test_api.py
 
 Module ачаалагдсан бол жинхэнэ module-ээр, үгүй бол --fallback горимоор шалгана
-(module-ийн номын форматын тест зөвхөн module ачаалагдсан үед).
+(module-ийн номын форматын тест зөвхөн module ачаалагдсан үед). ModeTest нь
+/proc/pid, /proc/pid_tree замыг түр сольж module / book / fallback горим бүрийг шалгана.
 """
 import json
+import os
 import sys
+import tempfile
 import threading
 import time
 import unittest
@@ -19,7 +22,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import server  # noqa: E402
 
-MODULE = server.ModuleBackend.available()
+MODE = server.select_backend(True).mode      # module | book | fallback
+MODULE = MODE == "module"
 
 
 def call(base, path, method="GET"):
@@ -52,7 +56,8 @@ class ApiTest(unittest.TestCase):
     def test_01_status(self):
         s, b = call(self.base, "/api/status")
         self.assertEqual(s, 200)
-        self.assertEqual(b["module_loaded"], MODULE)
+        self.assertEqual(b["mode"], MODE)
+        self.assertEqual(b["module_loaded"], MODE != "fallback")
         self.assertEqual(b["demo_root"], self.root)
 
     def test_02_pid1(self):
@@ -60,7 +65,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(s, 200)
         self.assertEqual(b["task"]["pid"], 1)
         self.assertEqual(b["ancestors"], [])
-        if MODULE:
+        if MODE != "fallback":
             self.assertRegex(b["book_line"], r"^command = \[.+\] pid = \[1\] state = \[\d+\]$")
 
     def test_03_demo_tree_structure(self):
@@ -145,6 +150,10 @@ class ApiTest(unittest.TestCase):
             self.assertEqual([(c["op"], c["path"]) for c in b["calls"]],
                              [("write", "/proc/pid"), ("read", "/proc/pid"), ("read", "/proc/pid_tree")])
             self.assertEqual(b["calls"][0]["data"], f"{self.root}\\n")
+        elif MODE == "book":
+            self.assertEqual([(c["op"], c["path"]) for c in b["calls"]][:2],
+                             [("write", "/proc/pid"), ("read", "/proc/pid")])
+            self.assertEqual(len(b["calls"]), 3)                   # + procfs-оос шатлал
         else:
             self.assertEqual(len(b["calls"]), 1)
 
@@ -197,6 +206,90 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(s, 400)
 
 
+class ParserTest(unittest.TestCase):
+    """Module-ийн гаралтыг задлах цэвэр функцууд (сервер шаардлагагүй)."""
+
+    def test_17_book_line(self):
+        p = server.parse_book_line
+        self.assertEqual(p("command = [bash] pid = [1395] state = [1]\n"),
+                         {"comm": "bash", "pid": 1395, "state": 1, "state_char": None})
+        self.assertEqual(p("command=[kworker/0:1 x] pid=[7]  state=[8193]")["state"], 8193)
+        self.assertEqual(p("command = [a] b] pid = [2] state = [S]"),      # state үсгээр, comm-д ']'
+                         {"comm": "a] b", "pid": 2, "state": -1, "state_char": "S"})
+        for bad in ("", "1395", "command = [bash] pid = [x] state = [1]", "pid = [1] state = [1]"):
+            with self.subTest(line=bad):
+                self.assertIsNone(p(bad))
+
+    def test_18_tree_comm_with_spaces(self):
+        raw = ("task pid=5 tgid=5 ppid=1 state=1 state_char=S uid=0 threads=1 comm=Web Content\n"
+               "ancestor pid=1 tgid=1 ppid=0 state=1 state_char=S uid=0 threads=1 comm=init\n"
+               "child pid=6 tgid=6 ppid=5 state=0 state_char=R uid=0 threads=1 comm=a=b|c d\n"
+               "summary ancestors=1 children=1 truncated=0\n")
+        task, anc, kids, summ = server.parse_tree_output(raw)
+        self.assertEqual(task["comm"], "Web Content")
+        self.assertEqual((kids[0]["comm"], kids[0]["state_name"]), ("a=b|c d", "running"))
+        self.assertEqual([a["pid"] for a in anc], [1])
+        self.assertEqual(summ, {"ancestors": 1, "children": 1, "truncated": 0})
+
+
+class ModeTest(unittest.TestCase):
+    """Backend-ийн горимууд: PROC_PID / PROC_TREE замыг түр сольж сервер асаана."""
+    NOWHERE = "/proc/nonexistent_iv_2_2"
+
+    def serve(self, proc_pid, proc_tree, fallback=False):
+        saved = server.PROC_PID, server.PROC_TREE
+        server.PROC_PID, server.PROC_TREE = proc_pid, proc_tree
+
+        def restore():
+            server.PROC_PID, server.PROC_TREE = saved
+        self.addCleanup(restore)
+        srv = server.make_server("127.0.0.1", 0, fallback=fallback)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        return f"http://127.0.0.1:{srv.server_address[1]}"
+
+    def test_19_fallback_mode(self):
+        base = self.serve(self.NOWHERE, self.NOWHERE, fallback=True)
+        b = call(base, "/api/status")[1]
+        self.assertEqual((b["mode"], b["module_loaded"]), ("fallback", False))
+        s, b = call(base, "/api/task?pid=1&depth=0")
+        self.assertEqual((s, b["mode"]), (200, "fallback"))
+        self.assertTrue(b["book_line"].endswith("(fallback)"))
+
+    def test_20_no_module_503(self):
+        base = self.serve(self.NOWHERE, self.NOWHERE)
+        self.assertIsNone(call(base, "/api/status")[1]["mode"])
+        self.assertEqual(call(base, "/api/task?pid=1")[0], 503)
+
+    def test_21_book_format_mismatch_502(self):
+        """/proc/pid номын формат биш мөр буцаавал UI буруу дүрслэхгүй — 502 + шалгагчийн заавар."""
+        with tempfile.TemporaryDirectory() as d:
+            fake = Path(d) / "pid"                 # энгийн файл: бичсэн "1\n"-ээ буцааж уншина
+            fake.touch()
+            base = self.serve(str(fake), self.NOWHERE)
+            self.assertEqual(call(base, "/api/status")[1]["mode"], "book")
+            s, b = call(base, "/api/task?pid=1")
+            self.assertEqual(s, 502, b)
+            self.assertIn("contract_check", b["error"])
+
+    @unittest.skipUnless(MODULE, "/proc/pid + /proc/pid_tree-тэй module шаардлагатай")
+    def test_22_book_mode_matches_module(self):
+        """/proc/pid_tree-гүй module-ийг дуурайна: task нь module-ээс, шатлал procfs-оос — module-тэй ижил."""
+        m1 = server.ModuleBackend().query(1)
+        me = server.ModuleBackend().query(os.getpid())
+        base = self.serve(server.PROC_PID, self.NOWHERE)
+        s, b = call(base, "/api/task?pid=1&depth=0")
+        self.assertEqual((s, b["mode"]), (200, "book"), b)
+        self.assertEqual(b["book_line"], m1["book_line"])
+        for k in ("pid", "tgid", "ppid", "uid", "comm", "state", "state_char", "threads"):
+            self.assertEqual(b["task"][k], m1["task"][k], k)
+        self.assertEqual({c["pid"] for c in b["tree"]["children"]}, {c["pid"] for c in m1["children"]})
+        self.assertEqual([c["path"] for c in b["calls"]][:2], ["/proc/pid", "/proc/pid"])
+        s, b = call(base, f"/api/task?pid={os.getpid()}&depth=0")
+        self.assertEqual([a["pid"] for a in b["ancestors"]], [a["pid"] for a in me["ancestors"]])
+
+
 if __name__ == "__main__":
-    print("backend:", "kernel module" if MODULE else "procfs fallback")
+    print("backend:", MODE)
     unittest.main(verbosity=2)
