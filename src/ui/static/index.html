@@ -41,9 +41,27 @@
         <button type="button" id="demo-stop">Demo зогсоох</button>
         <button type="button" id="reset">Reset</button>
       </div>
+      <button type="button" id="scenario" class="wide" title="fork → STOP → CONT → TERM → zombie → wait() — алхам бүрийг тайлбартай тоглуулж Түүхэнд хадгална">▶ Сценари: процессын амьдралын мөчлөг</button>
       <label class="check"><input type="checkbox" id="auto"> Автомат шинэчлэх
         <select id="interval"><option value="1000">1 с</option><option value="2000" selected>2 с</option><option value="5000">5 с</option></select>
       </label>
+    </section>
+
+    <section class="panel" id="demo-panel" hidden>
+      <h2>Туршилт удирдах <span class="muted">(demo мод)</span></h2>
+      <p class="hint tight">demo_root-д:</p>
+      <div class="row wrap">
+        <button type="button" data-demo="spawn" title="SIGUSR1 → fork() шинэ хүү (S)">+ Хүү процесс</button>
+        <button type="button" data-demo="zombie" title="SIGUSR2 → шууд дуусах хүү → Z">+ Zombie</button>
+        <button type="button" data-demo="reap" title="SIGHUP → demo_root wait() → zombie арилна">wait() — цэвэрлэх</button>
+      </div>
+      <p class="hint tight">Сонгосон процесс: <b id="sel-label">—</b></p>
+      <div class="row wrap">
+        <button type="button" data-sig="STOP" title="SIGSTOP → T">STOP</button>
+        <button type="button" data-sig="CONT" title="SIGCONT → S/R">CONT</button>
+        <button type="button" data-sig="TERM" class="danger" title="SIGTERM → дуусна → эцэг wait() хийх хүртэл Z">KILL</button>
+      </div>
+      <p class="hint tight" id="demo-hint">Зөвхөн demo процесст илгээгдэнэ.</p>
     </section>
 
     <section class="panel grow">
@@ -56,6 +74,14 @@
   <section class="content">
     <div id="error" class="banner error" hidden></div>
     <div id="fallback" class="banner warn" hidden>⚠ Нөөц горим: өгөгдлийг kernel module биш <code>/proc/&lt;pid&gt;/stat</code>-аас уншиж байна.</div>
+    <div id="scenario-banner" class="banner scenario" hidden>
+      <span id="scenario-text"></span>
+      <button type="button" id="scenario-close" title="Хаах">✕</button>
+    </div>
+    <div id="hist-banner" class="banner info" hidden>
+      <span id="hist-text"></span>
+      <button type="button" id="hist-live">Live руу буцах</button>
+    </div>
 
     <div class="cards">
       <section class="panel book">
@@ -73,11 +99,35 @@
         <h2>Шатлал <span id="tree-meta" class="muted"></span></h2>
         <ul class="legend" id="legend"></ul>
       </div>
+      <label class="check small"><input type="checkbox" id="compact"> Өвөг эцгийг товчлох (нэг мөрөнд)</label>
+      <nav id="crumbs" class="crumbs" hidden aria-label="Өвөг эцгийн гинж"></nav>
+      <div id="diff" class="diff" hidden></div>
       <div class="tree-scroll"><svg id="tree" role="img" aria-label="Task hierarchy"></svg></div>
-      <p class="hint">Зангилаа дээр дарж тэр task руу шилжинэ. Тасархай хүрээ — хүүхдүүдийг нь хараахан асуугаагүй (дарж нээнэ).</p>
+      <p class="hint">Зангилаа дээр дарж тэр task руу шилжинэ. Тасархай хүрээ — хүүхдүүдийг нь хараахан асуугаагүй.
+        Ногоон гэрэлтэлт — <b>шинэ</b> процесс, шар — <b>төлөв өөрчлөгдсөн</b> (өмнөх шинэчлэлтээс хойш).</p>
     </section>
 
-    <details class="panel raw">
+    <section class="panel">
+      <div class="tree-head">
+        <h2>Түүх <span id="hist-count" class="muted"></span></h2>
+        <div class="row nomargin">
+          <button type="button" id="hist-prev" title="Өмнөх snapshot">◀</button>
+          <button type="button" id="hist-next" title="Дараах snapshot">▶</button>
+        </div>
+      </div>
+      <ol id="history" class="history"></ol>
+    </section>
+
+    <details class="panel raw" id="calls-panel">
+      <summary>Module дуудлагын лог — энэ хүсэлт kernel module-тэй хэрхэн харилцсан бэ</summary>
+      <table class="calls">
+        <thead><tr><th>#</th><th>Үйлдэл</th><th>Файл</th><th>Өгөгдөл</th><th>Байт</th><th>µs</th></tr></thead>
+        <tbody id="calls"></tbody>
+      </table>
+      <p class="hint" id="calls-total"></p>
+    </details>
+
+    <details class="panel raw" id="raw-panel">
       <summary>Module-ийн түүхий гаралт — <code>cat /proc/pid_tree</code></summary>
       <pre id="raw"></pre>
     </details>
