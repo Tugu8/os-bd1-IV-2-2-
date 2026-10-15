@@ -9,6 +9,11 @@ Module-тай тохирох интерфейсийг src/ui/README.md-ээс х
     python3 src/ui/server.py --port 9000
     python3 src/ui/server.py --fallback      # module байхгүй үед /proc/<pid>/stat-аас (UI-д тодорхой тэмдэглэнэ)
 
+Backend-ийг автоматаар сонгоно:
+    module   — /proc/pid + /proc/pid_tree (бүх өгөгдөл module-ээс)
+    book     — зөвхөн номын /proc/pid: command/pid/state module-ээс, эцэг/хүүгийн холбоо procfs-оос
+    fallback — module огт байхгүй, --fallback өгсөн үед
+
 API:
     GET  /api/status                 — backend, module ачаалагдсан эсэх, кернел
     GET  /api/task?pid=N&depth=D     — task, өвөг эцгүүд, D түвшний хүү процессын мод, номын мөр
@@ -122,9 +127,42 @@ def parse_tree_output(raw):
     return task, ancestors, children, summary
 
 
+# Номын формат: "command = [bash] pid = [1395] state = [1]" (state нь __state тоо;
+# зарим хэрэгжүүлэлт үсгээр бичдэг тул тэрийг ч хүлээн авна)
+_BOOK = re.compile(r"^command\s*=\s*\[(.*)\]\s*pid\s*=\s*\[(\d+)\]\s*state\s*=\s*\[(-?\d+|[A-Za-z])\]$")
+
+
+def parse_book_line(line):
+    """/proc/pid-ийн нэг мөр → {comm, pid, state, state_char} эсвэл формат таарахгүй бол None."""
+    m = _BOOK.match(line.strip())
+    if not m:
+        return None
+    comm, pid, st = m.groups()
+    if st.lstrip("-").isdigit():
+        return {"comm": comm, "pid": int(pid), "state": int(st), "state_char": None}
+    return {"comm": comm, "pid": int(pid), "state": -1, "state_char": st}
+
+
+def _write_read_book(pid, calls):
+    """PID-ийг /proc/pid руу бичээд номын мөрийг уншина. _module_lock дотор дуудна."""
+    t = time.perf_counter()
+    try:
+        with open(PROC_PID, "w") as f:
+            f.write(f"{pid}\n")
+    except OSError as e:
+        raise TaskError(400, f"Module оролтыг татгалзлаа: {e.strerror}")
+    calls.append(_call("write", PROC_PID, f"{pid}\\n", len(f"{pid}\n"), t))
+    t = time.perf_counter()
+    with open(PROC_PID) as f:
+        book_line = f.read().strip()
+    calls.append(_call("read", PROC_PID, book_line, len(book_line), t))
+    return book_line
+
+
 class ModuleBackend:
     """Жинхэнэ kernel module: PID-ийг /proc/pid руу бичиж, /proc/pid ба /proc/pid_tree-ийг уншина."""
     name = "kernel module (/proc/pid, /proc/pid_tree)"
+    mode = "module"
 
     @staticmethod
     def available():
@@ -133,17 +171,7 @@ class ModuleBackend:
     def query(self, pid):
         calls = []                                # UI-ийн "Module дуудлагын лог"-д
         with _module_lock:
-            t = time.perf_counter()
-            try:
-                with open(PROC_PID, "w") as f:
-                    f.write(f"{pid}\n")
-            except OSError as e:
-                raise TaskError(400, f"Module оролтыг татгалзлаа: {e.strerror}")
-            calls.append(_call("write", PROC_PID, f"{pid}\\n", len(f"{pid}\n"), t))
-            t = time.perf_counter()
-            with open(PROC_PID) as f:
-                book_line = f.read().strip()
-            calls.append(_call("read", PROC_PID, book_line, len(book_line), t))
+            book_line = _write_read_book(pid, calls)
             t = time.perf_counter()
             with open(PROC_TREE) as f:
                 raw = f.read()
@@ -158,6 +186,11 @@ class ModuleBackend:
 class ProcfsBackend:
     """Нөөц горим: module байхгүй үед /proc/<pid>/stat-аас ижил бүтэц үүсгэнэ (UI-д тодорхой тэмдэглэнэ)."""
     name = "procfs fallback (/proc/<pid>/stat) — kernel module БИШ"
+    mode = "fallback"
+
+    def __init__(self):
+        # Хүсэлт бүрт шинэ объект → /proc-ийг нэг л удаа уншина (мод нэг агшны, тогтвортой).
+        self._snapshot = None
 
     @staticmethod
     def _stat(pid):
@@ -171,11 +204,13 @@ class ProcfsBackend:
         comm = data[data.index("(") + 1:data.rindex(")")]
         rest = data[data.rindex(")") + 2:].split()
         uid = int(re.search(r"^Uid:\s+(\d+)", status, re.M).group(1))
-        return {"pid": pid, "tgid": pid, "ppid": int(rest[1]), "state": -1, "state_char": rest[0],
+        tgid = int(re.search(r"^Tgid:\s+(\d+)", status, re.M).group(1))
+        return {"pid": pid, "tgid": tgid, "ppid": int(rest[1]), "state": -1, "state_char": rest[0],
                 "state_name": STATE_NAMES.get(rest[0], "?"), "uid": uid,
                 "threads": int(rest[17]), "comm": comm}
 
-    def query(self, pid):
+    def _relations(self, pid):
+        """task, өвөг эцгүүд (эцэг эхэнд), шууд хүүхдүүд — /proc/<pid>/stat-аас."""
         task = self._stat(pid)
         if task is None:
             raise TaskError(404, f"PID {pid} олдсонгүй (/proc/{pid} байхгүй)")
@@ -188,9 +223,14 @@ class ProcfsBackend:
             if p == 1:
                 break
             p = a["ppid"]
-        children = [s for s in (self._stat(int(d)) for d in os.listdir("/proc") if d.isdigit())
-                    if s and s["ppid"] == pid]
-        children.sort(key=lambda n: n["pid"])
+        if self._snapshot is None:
+            self._snapshot = [s for s in (self._stat(int(d)) for d in os.listdir("/proc")
+                                          if d.isdigit()) if s]
+        children = sorted((s for s in self._snapshot if s["ppid"] == pid), key=lambda n: n["pid"])
+        return task, ancestors, children
+
+    def query(self, pid):
+        task, ancestors, children = self._relations(pid)
         book = f"command = [{task['comm']}] pid = [{pid}] state = [{task['state_char']}]"
         return {"book_line": book + "   (fallback)", "task": task, "ancestors": ancestors,
                 "children": children,
@@ -198,6 +238,53 @@ class ProcfsBackend:
                 "raw": "(procfs fallback — module ачаалагдаагүй)\n",
                 "calls": [{"op": "read", "path": f"/proc/{pid}/stat (fallback)", "data": "",
                            "bytes": 0, "us": 0}]}
+
+
+class BookBackend(ProcfsBackend):
+    """Module зөвхөн номын /proc/pid-тэй (/proc/pid_tree-гүй) үед.
+
+    Task-ийн command, pid, state-ийг module-ээс; эцэг/хүүгийн холбоо, uid, урсгалын тоог
+    /proc/<pid>/stat-аас авна. UI-д хаанаас ирснийг тодорхой тэмдэглэнэ.
+    """
+    name = "kernel module (/proc/pid) + procfs шатлал (/proc/pid_tree алга)"
+    mode = "book"
+
+    @staticmethod
+    def available():
+        return os.path.exists(PROC_PID) and not os.path.exists(PROC_TREE)
+
+    def query(self, pid):
+        calls = []
+        with _module_lock:
+            book_line = _write_read_book(pid, calls)
+        if not book_line:
+            raise TaskError(404, f"PID {pid} олдсонгүй — module 0 байт буцаалаа (номын шаардлага)")
+        book = parse_book_line(book_line)
+        if book is None:
+            raise TaskError(502, f"/proc/pid-ийн гаралт номын форматтай таарахгүй: '{book_line[:80]}' "
+                                 "(хүлээгдэх: command = [..] pid = [..] state = [..]) — "
+                                 "python3 src/ui/contract_check.py-оор шалгана уу")
+        t = time.perf_counter()
+        task, ancestors, children = self._relations(pid)
+        task = dict(task, comm=book["comm"], state=book["state"])
+        if book["state_char"]:
+            task["state_char"] = book["state_char"]
+            task["state_name"] = STATE_NAMES.get(book["state_char"], "?")
+        calls.append(_call("read", f"/proc/{pid}/stat (шатлал, procfs)",
+                           f"ppid={task['ppid']} хүүхэд={len(children)}", 0, t))
+        return {"book_line": book_line, "task": task, "ancestors": ancestors,
+                "children": children,
+                "summary": {"ancestors": len(ancestors), "children": len(children), "truncated": 0},
+                "raw": book_line + "\n# /proc/pid_tree алга — эцэг/хүүгийн холбоог /proc/<pid>/stat-аас уншив\n",
+                "calls": calls}
+
+
+def select_backend(fallback_allowed):
+    """Хамгийн их өгөгдлийг module-ээс авах backend-ийг сонгоно (байхгүй бол None)."""
+    for cls in (ModuleBackend, BookBackend):
+        if cls.available():
+            return cls
+    return ProcfsBackend if fallback_allowed else None
 
 
 def build_tree(backend, pid, depth):
@@ -332,10 +419,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send(err.status, {"error": err.message, "status": err.status})
 
     def _current_backend(self):
-        if ModuleBackend.available():
-            return ModuleBackend()
-        if self.fallback_allowed:
-            return ProcfsBackend()
+        cls = select_backend(self.fallback_allowed)
+        if cls:
+            return cls()
         raise TaskError(503, "Kernel module ачаалагдаагүй байна (/proc/pid алга). "
                              "Ачаалах: sudo insmod src/kmod/pid.ko — эсвэл --fallback горимоор асаана уу")
 
@@ -344,11 +430,12 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(url.query)
         try:
             if url.path == "/api/status":
-                loaded = ModuleBackend.available()
+                cls = select_backend(self.fallback_allowed)
                 self._send(200, {
-                    "module_loaded": loaded,
-                    "backend": ModuleBackend.name if loaded else
-                               (ProcfsBackend.name if self.fallback_allowed else None),
+                    "module_loaded": os.path.exists(PROC_PID),
+                    "tree_file": os.path.exists(PROC_TREE),
+                    "mode": cls.mode if cls else None,
+                    "backend": cls.name if cls else None,
                     "fallback_allowed": self.fallback_allowed,
                     "kernel": platform.release(),
                     "server_pid": os.getpid(),
@@ -361,7 +448,7 @@ class Handler(BaseHTTPRequestHandler):
                 t0 = time.perf_counter()
                 root, tree, counter = build_tree(backend, pid, depth)
                 self._send(200, {
-                    "backend": backend.name, "book_line": root["book_line"],
+                    "backend": backend.name, "mode": backend.mode, "book_line": root["book_line"],
                     "task": root["task"], "ancestors": root["ancestors"], "tree": tree,
                     "summary": root["summary"], "raw": root["raw"], "depth": depth,
                     "nodes": counter["nodes"], "queries": counter["queries"],
@@ -422,8 +509,10 @@ def main():
     args = ap.parse_args()
 
     srv = make_server(args.host, args.port, args.fallback)
-    state = "loaded" if ModuleBackend.available() else ("NOT loaded → fallback" if args.fallback
-                                                        else "NOT loaded")
+    cls = select_backend(args.fallback)
+    state = {"module": "loaded (/proc/pid + /proc/pid_tree)",
+             "book": "loaded, /proc/pid only → hierarchy from procfs",
+             "fallback": "NOT loaded → fallback"}.get(cls.mode if cls else None, "NOT loaded")
     # flush — гаралтыг файл руу чиглүүлсэн үед ч (жнь > server.log) шууд харагдана
     print(f"kernel module (/proc/pid): {state}", flush=True)
     print(f"Task Hierarchy UI: http://localhost:{args.port}   (Ctrl+C — зогсоох)", flush=True)

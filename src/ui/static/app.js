@@ -55,23 +55,26 @@ async function refreshStatus() {
   const pill = $("status");
   try {
     const s = await api("/api/status");
-    if (s.module_loaded) {
-      pill.className = "pill pill-ok";
-      pill.textContent = `● module loaded · ${s.kernel}`;
-    } else if (s.fallback_allowed) {
-      pill.className = "pill pill-warn";
-      pill.textContent = "● fallback (module биш)";
-    } else {
-      pill.className = "pill pill-bad";
-      pill.textContent = "● module ачаалагдаагүй";
-    }
-    pill.title = s.backend || "backend байхгүй";
-    $("fallback").hidden = s.module_loaded || !s.fallback_allowed;
+    const [cls, text] = {
+      module:   ["pill-ok",   `● module loaded · ${s.kernel}`],
+      book:     ["pill-warn", `● module: зөвхөн /proc/pid · ${s.kernel}`],
+      fallback: ["pill-warn", "● fallback (module биш)"],
+    }[s.mode] || ["pill-bad", "● module ачаалагдаагүй"];
+    pill.className = `pill ${cls}`;
+    pill.textContent = text;
+    pill.title = `${s.backend || "backend байхгүй"} · ${s.kernel}`;   // нарийн дэлгэцэнд pill тасардаг
+    showMode(s.mode);
     setDemoRoot(s.demo_root);
   } catch (e) {
     pill.className = "pill pill-bad";
     pill.textContent = "● сервер холбогдохгүй";
   }
+}
+
+// module (бүгд module-ээс) · book (шатлал procfs-оос) · fallback (module биш)
+function showMode(mode) {
+  $("fallback").hidden = mode !== "fallback";
+  $("bookmode").hidden = mode !== "book";
 }
 
 function setDemoRoot(root) {
@@ -254,7 +257,7 @@ function render(d, diff) {
   $("tree-meta").textContent =
     `· ${d.nodes} зангилаа · ${d.queries} module асуулга · ${d.elapsed_ms} мс · ${d.backend}`;
   $("raw").textContent = d.raw;
-  $("fallback").hidden = !d.backend.startsWith("procfs");
+  showMode(d.mode);
   renderCalls(d);
   renderDiff(diff);
   drawTree(d, diff);
