@@ -59,16 +59,30 @@ function flattenTree(tree) {
   return m;
 }
 
-/** Хоёр snapshot-ийн ялгаа: шинэ, алга болсон, төлөв өөрчлөгдсөн зангилаанууд. */
+/** pid → эцгийн pid (модны бүтцээс). */
+function parentMap(tree) {
+  const m = new Map();
+  (function walk(n) { (n.children || []).forEach((c) => { m.set(c.pid, n.pid); walk(c); }); })(tree);
+  return m;
+}
+
+/**
+ * Хоёр snapshot-ийн ялгаа: шинэ, алга болсон, төлөв өөрчлөгдсөн зангилаанууд.
+ * Шинэ/алга болсныг зөвхөн эцгийнх нь хүүхдийн жагсаалт нөгөө snapshot-д ч мэдэгдэж
+ * байсан (unexpanded навч биш) үед тооцно — зангилаа нээх/хаах, гүн солиход
+ * "харагдах болсон" процессыг "шинээр үүссэн" гэж андуурахгүй.
+ */
 function diffTrees(oldTree, newTree) {
   const before = flattenTree(oldTree), after = flattenTree(newTree);
+  const pBefore = parentMap(oldTree), pAfter = parentMap(newTree);
+  const listed = (nodes, parent) => parent === undefined || (nodes.has(parent) && !nodes.get(parent).unexpanded);
   const added = [], removed = [], changed = [];
   for (const [pid, n] of after) {
     const o = before.get(pid);
-    if (!o) added.push(n);
+    if (!o) { if (listed(before, pAfter.get(pid))) added.push(n); }
     else if (o.state_char !== n.state_char) changed.push({ node: n, from: o.state_char, to: n.state_char });
   }
-  for (const [pid, o] of before) if (!after.has(pid)) removed.push(o);
+  for (const [pid, o] of before) if (!after.has(pid) && listed(after, pBefore.get(pid))) removed.push(o);
   return { added, removed, changed };
 }
 

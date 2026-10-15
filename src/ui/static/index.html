@@ -104,7 +104,7 @@
       <nav id="crumbs" class="crumbs" hidden aria-label="Өвөг эцгийн гинж"></nav>
       <div id="diff" class="diff" hidden></div>
       <div class="tree-scroll"><svg id="tree" role="img" aria-label="Task hierarchy"></svg></div>
-      <p class="hint">Зангилаа дээр дарж (эсвэл Tab → <kbd>↑</kbd> эцэг, <kbd>↓</kbd> хүүхэд, <kbd>←</kbd><kbd>→</kbd> ах дүү, <kbd>Enter</kbd>) тэр task руу шилжинэ.
+      <p class="hint">Зангилаа дээр дарж (эсвэл Tab → <kbd>↑</kbd> эцэг, <kbd>↓</kbd> хүүхэд, <kbd>←</kbd><kbd>→</kbd> ах дүү, <kbd>Enter</kbd>) тэр task руу шилжинэ. Зангилааны <b>⊕</b> (эсвэл <kbd>+</kbd>) — сонголтоо солилгүй хүүхдүүдийг нь энд нээнэ, <b>⊖</b> (<kbd>−</kbd>) — хаана.
         Зүүн талын шүүлтүүр модон дээр ч тодруулна. Тасархай хүрээ — хүүхдүүдийг нь хараахан асуугаагүй.
         Ногоон гэрэлтэлт — <b>шинэ</b> процесс, шар — <b>төлөв өөрчлөгдсөн</b> (өмнөх шинэчлэлтээс хойш).</p>
     </section>
@@ -117,6 +117,7 @@
           <button type="button" id="hist-next" title="Дараах snapshot">▶</button>
           <button type="button" id="export-json" title="Бүх түүхийг JSON (тайлбар, diff, module-ийн гаралт, лог) болгон татах">⤓ JSON</button>
           <button type="button" id="export-svg" title="Одоогийн модыг SVG зураг болгон татах (тайлан, постерт)">⤓ SVG</button>
+          <button type="button" id="export-png" title="Одоогийн модыг PNG (2×) болгон татах — Word, Teams-д шууд">⤓ PNG</button>
         </div>
       </div>
       <ol id="history" class="history"></ol>

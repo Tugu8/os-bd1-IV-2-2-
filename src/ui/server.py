@@ -17,6 +17,7 @@ Backend-ийг автоматаар сонгоно:
 API:
     GET  /api/status                 — backend, module ачаалагдсан эсэх, кернел
     GET  /api/task?pid=N&depth=D     — task, өвөг эцгүүд, D түвшний хүү процессын мод, номын мөр
+         [&expand=A,B]               — D-ээс гадна A, B зангилааг нэмж нээнэ (UI: газар дээр нь нээх)
     GET  /api/processes              — сонгоход зориулсан бүх процессын жагсаалт
     POST /api/demo                   — туршилтын процессын мод үүсгэнэ (src/ui/demo_tree.py)
     POST /api/demo/stop              — туршилтын модыг зогсооно
@@ -45,6 +46,7 @@ PROC_TREE = "/proc/pid_tree"
 PID_MAX_LIMIT = 4194304                  # кернелийн PID_MAX_LIMIT (64-бит)
 MAX_DEPTH = 6
 MAX_NODES = 400
+MAX_EXPAND = 64
 
 ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
@@ -95,6 +97,19 @@ def parse_depth(text):
     if not text.isdigit() or not 0 <= int(text) <= MAX_DEPTH:
         raise TaskError(400, f"depth 0..{MAX_DEPTH} хооронд байна")
     return int(text)
+
+
+def parse_expand(text):
+    """expand=12,34 → {12, 34}: depth-ээс гадна нээх зангилаанууд (хамгийн ихдээ MAX_EXPAND)."""
+    if text in (None, ""):
+        return frozenset()
+    parts = text.split(",")
+    if len(parts) > MAX_EXPAND:
+        raise TaskError(400, f"expand нь хамгийн ихдээ {MAX_EXPAND} PID")
+    try:
+        return frozenset(parse_pid(x) for x in parts)
+    except TaskError as e:
+        raise TaskError(400, f"expand: {e.message}")
 
 
 _LINE = re.compile(r"^(\w+) (.*?)(?: comm=(.*))?$")
@@ -287,8 +302,12 @@ def select_backend(fallback_allowed):
     return ProcfsBackend if fallback_allowed else None
 
 
-def build_tree(backend, pid, depth):
-    """Сонгосон PID-ээс доош depth түвшний мод. Хүү бүрийн хүүхдүүдийг мөн module-ээс асууна."""
+def build_tree(backend, pid, depth, extra=frozenset()):
+    """Сонгосон PID-ээс доош depth түвшний мод. Хүү бүрийн хүүхдүүдийг мөн module-ээс асууна.
+
+    extra (?expand=) дахь PID-ийг depth-ээс гүн байсан ч асууж, хүүхдүүдийг нь (навч болгон) харуулна —
+    UI-д зангилааг газар дээр нь нэг түвшнээр нээхэд.
+    """
     root = backend.query(pid)
     counter = {"nodes": 1, "queries": 1}
 
@@ -300,7 +319,7 @@ def build_tree(backend, pid, depth):
         node["children"] = []
         for child in info["children"]:
             # depth=0: зөвхөн шууд хүүхдүүд (асуухгүй), depth=1: тэдний хүүхдүүд ч гэх мэт
-            if level <= depth and counter["nodes"] < MAX_NODES:
+            if (level <= depth or child["pid"] in extra) and counter["nodes"] < MAX_NODES:
                 try:
                     sub = backend.query(child["pid"])
                     counter["queries"] += 1
@@ -444,13 +463,15 @@ class Handler(BaseHTTPRequestHandler):
             elif url.path == "/api/task":
                 pid = parse_pid(q.get("pid", [None])[0])
                 depth = parse_depth(q.get("depth", [None])[0])
+                expand = parse_expand(q.get("expand", [None])[0])
                 backend = self._current_backend()
                 t0 = time.perf_counter()
-                root, tree, counter = build_tree(backend, pid, depth)
+                root, tree, counter = build_tree(backend, pid, depth, expand)
                 self._send(200, {
                     "backend": backend.name, "mode": backend.mode, "book_line": root["book_line"],
                     "task": root["task"], "ancestors": root["ancestors"], "tree": tree,
                     "summary": root["summary"], "raw": root["raw"], "depth": depth,
+                    "expand": sorted(expand),
                     "nodes": counter["nodes"], "queries": counter["queries"],
                     "calls": root["calls"], "demo_root": Demo.root_pid,
                     "elapsed_ms": round((time.perf_counter() - t0) * 1000, 1),

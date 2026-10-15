@@ -205,6 +205,30 @@ class ApiTest(unittest.TestCase):
         s, _ = call(self.base, "/api/demo/signal?pid=abc&sig=STOP", "POST")
         self.assertEqual(s, 400)
 
+    def test_23_expand_in_place(self):
+        """expand=PID: depth=0 байхад ч тэр зангилааг нэг түвшнээр нээнэ, бусад нь навч хэвээр."""
+        kids, _ = self.children(depth=0)
+        sleeper = kids["demo_sleeper"]["pid"]
+        s, b = call(self.base, f"/api/task?pid={self.root}&depth=0&expand={sleeper}")
+        self.assertEqual(s, 200, b)
+        self.assertEqual(b["expand"], [sleeper])
+        self.assertEqual(b["queries"], 2)                          # root + sleeper
+        opened = {c["comm"]: c for c in b["tree"]["children"]}
+        self.assertFalse(opened["demo_sleeper"].get("unexpanded"))
+        leaves = opened["demo_sleeper"]["children"]
+        self.assertEqual({c["comm"] for c in leaves}, {"demo_leaf_1", "demo_leaf_2"})
+        self.assertTrue(all(c.get("unexpanded") for c in leaves))  # нэг л түвшин
+        self.assertTrue(opened["demo_busy"].get("unexpanded"))
+        s, b = call(self.base, f"/api/task?pid={self.root}&depth=0&expand=999999,{sleeper}")
+        self.assertEqual((s, b["queries"]), (200, 2))              # модонд байхгүй PID — үл тооно
+
+    def test_24_expand_invalid(self):
+        for bad in ["abc", "1,,2", "-3", ",".join(["1"] * 65)]:
+            with self.subTest(expand=bad[:20]):
+                s, b = call(self.base, f"/api/task?pid=1&depth=0&expand={bad}")
+                self.assertEqual(s, 400, b)
+                self.assertIn("expand", b["error"])
+
 
 class ParserTest(unittest.TestCase):
     """Module-ийн гаралтыг задлах цэвэр функцууд (сервер шаардлагагүй)."""

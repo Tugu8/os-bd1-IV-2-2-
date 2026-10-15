@@ -125,6 +125,12 @@ svg .node.changed rect.halo { stroke: var(--chg); filter: drop-shadow(0 0 4px va
 svg .tag { font-size: 10px; font-weight: 700; }
 svg .tag-new { fill: var(--add); }
 svg .tag-chg { fill: var(--chg); }
+svg .node .toggle { cursor: pointer; }
+svg .node .toggle circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
+svg .node .toggle circle.hit { fill: transparent; stroke: none; }
+svg .node .toggle text { fill: var(--accent); font-size: 14px; font-weight: 700; pointer-events: none; }
+svg .node .toggle:hover circle:not(.hit) { fill: var(--accent); }
+svg .node .toggle:hover text { fill: var(--panel); }
 
 .history { list-style: none; margin: 0; padding: 0; max-height: 170px; overflow: auto; font-size: 12px; font-family: ui-monospace, Consolas, monospace; }
 .history li { padding: 3px 8px; border-radius: 5px; cursor: pointer; color: var(--muted); }

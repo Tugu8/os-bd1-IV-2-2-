@@ -134,3 +134,24 @@ test("diffTrees — ижил мод бол хоосон", () => {
   const d = diffTrees(t, structuredClone(t));
   assert.deepEqual([d.added.length, d.removed.length, d.changed.length], [0, 0, 0]);
 });
+
+test("diffTrees — зангилаа нээх/хаах нь шинэ/алга болсон гэж тооцогдохгүй", () => {
+  const closed = node([node(), { ...node(), unexpanded: true }]);
+  const open = structuredClone(closed);
+  delete open.children[1].unexpanded;
+  open.children[1].children = leaves(3);                       // нээхэд харагдах болсон ач нар
+  for (const [a, b] of [[closed, open], [open, closed]]) {
+    const d = diffTrees(a, b);
+    assert.deepEqual([d.added.length, d.removed.length, d.changed.length], [0, 0, 0]);
+  }
+});
+
+test("diffTrees — нээлттэй эцгийн доор бодитоор үүссэн/дууссан процесс тооцогдоно", () => {
+  const before = node([node([node()]), { ...node(), unexpanded: true }]);
+  const after = structuredClone(before);
+  const gone = after.children[0].children[0].pid, fresh = node([], "R");
+  after.children[0].children = [fresh];
+  const d = diffTrees(before, after);
+  assert.deepEqual(d.added.map((n) => n.pid), [fresh.pid]);
+  assert.deepEqual(d.removed.map((n) => n.pid), [gone]);
+});
