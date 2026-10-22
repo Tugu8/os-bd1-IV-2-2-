@@ -10,8 +10,14 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/proc_fs.h>
+#include <linux/slab.h>
+#include <linux/uaccess.h>
 
 #define PROC_NAME "pid"
+#define MAX_INPUT_LEN 32
+
+/* хамгийн сүүлд бичсэн PID */
+static long l_pid;
 
 static ssize_t proc_read(struct file *file, char __user *usr_buf,
 			 size_t count, loff_t *pos)
@@ -22,6 +28,32 @@ static ssize_t proc_read(struct file *file, char __user *usr_buf,
 static ssize_t proc_write(struct file *file, const char __user *usr_buf,
 			  size_t count, loff_t *pos)
 {
+	char *k_mem;
+	long val;
+	int ret;
+
+	if (count == 0 || count > MAX_INPUT_LEN)
+		return -EINVAL;
+
+	k_mem = kmalloc(count + 1, GFP_KERNEL);
+	if (!k_mem)
+		return -ENOMEM;
+
+	if (copy_from_user(k_mem, usr_buf, count)) {
+		kfree(k_mem);
+		return -EFAULT;
+	}
+	k_mem[count] = '\0';
+
+	/* kstrtol нь төгсгөлийн '\n'-ийг зөвшөөрнө (echo-ийн гаралт) */
+	ret = kstrtol(k_mem, 10, &val);
+	kfree(k_mem);
+	if (ret)
+		return ret;
+	if (val <= 0)
+		return -EINVAL;
+
+	l_pid = val;
 	return count;
 }
 
