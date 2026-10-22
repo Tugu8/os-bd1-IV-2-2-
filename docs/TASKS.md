@@ -7,7 +7,7 @@
 | Repository | https://github.com/Tugu8/os-bd1-IV-2-2- |
 | Хэл/сан/орчин | C (Linux kernel module), UI: _сонгоно_; Ubuntu/Debian bare-metal |
 | Үндсэн дүрслэл | Task hierarchy (parent – task – children мод) |
-| Шүүмжлэх баг | II-4-5 (Sudoku Solution Validator) |
+| Шүүмжлэх баг | IV-2-5 (Sudoku Solution Validator) |
 
 ## Гишүүдийн хариуцах ажил
 
@@ -18,7 +18,7 @@
 | B210930842 | **2-р бүлгийн бэлтгэл module ба build орчин.** Hello/jiffies маягийн `/proc` module, `Makefile`, суулгах заавар. Kernel version, dependency-г баримтжуулна. **Operational manual** бичнэ. | `src/prereq/`, `docs/Manual.md` (operational хэсэг) |
 | B231910003 | **Туршилт.** Номын жишээ (bash, init PID 1 гэх мэт) болон нэмэлт тестүүд. Boundary/error тест: байхгүй PID, сөрөг тоо, үсэг, хоосон оролт, маш том тоо, kernel thread. Тест бүрийн хүлээгдсэн ба бодит үр дүнг screenshot-той хадгална. | `tests/` |
 | B232270108 | **Үндсэн тайлан.** Онолын үндэс (PCB, `task_struct`, process state, `/proc`), системийн зохиомж (компонент ба өгөгдлийн урсгалын диаграм), үр дүн ба хэлэлцүүлгийг нэгтгэж **Report.pdf** гаргана. | `report/` |
-| B241940099 | **Хэрэглэгчийн manual ба танилцуулга.** User manual (дүрслэлийн тэмдэг, өнгө, 2+ жишээ, түгээмэл алдаа), README Quick Start, MS Teams БД1 пост. **II-4-5-ийн шүүмжийг** зохион байгуулна (бүх гишүүн оролцоно). | `docs/Manual.md` (хэрэглэгчийн хэсэг), `review/` |
+| B241940099 | **Хэрэглэгчийн manual ба танилцуулга.** User manual (дүрслэлийн тэмдэг, өнгө, 2+ жишээ, түгээмэл алдаа), README Quick Start, MS Teams БД1 пост. **IV-2-5-ийн шүүмжийг** зохион байгуулна (бүх гишүүн оролцоно). | `docs/Manual.md` (хэрэглэгчийн хэсэг), `review/` |
 
 > Тайлангийн "Хэрэгжилт" хэсгийг kernel module болон UI хариуцсан гишүүд өөрсдөө бичиж өгнө.
 
@@ -31,7 +31,7 @@
 | 7 | UI-г module-тай холбох, тест эхлэх | B190910014, B231910003 |
 | 8 | Тест, тайлан, Manual нэгтгэх | B231910003, B232270108, B241940099 |
 | 9 | Release/Tag, Report.pdf, Manual.pdf, БД1 пост | B242270047, B241940099 |
-| 10 | II-4-5-ийн ажлыг build/run/тест хийж Review.pdf гаргах | Бүгд |
+| 10 | IV-2-5-ийн ажлыг build/run/тест хийж Review.pdf гаргах | Бүгд |
 
 ## Үндсэн тестүүд
 
