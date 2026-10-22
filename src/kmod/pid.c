@@ -13,6 +13,7 @@
 #include <linux/proc_fs.h>
 #include <linux/rcupdate.h>
 #include <linux/sched.h>
+#include <linux/threads.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
@@ -87,7 +88,8 @@ static ssize_t proc_write(struct file *file, const char __user *usr_buf,
 	kfree(k_mem);
 	if (ret)
 		return ret;
-	if (val <= 0)
+	/* PID нь 1..PID_MAX_LIMIT хооронд байх ёстой */
+	if (val <= 0 || val > PID_MAX_LIMIT)
 		return -EINVAL;
 
 	l_pid = val;
