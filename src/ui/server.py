@@ -148,8 +148,9 @@ _BOOK = re.compile(r"^command\s*=\s*\[(.*)\]\s*pid\s*=\s*\[(\d+)\]\s*state\s*=\s
 
 
 def parse_book_line(line):
-    """/proc/pid-ийн нэг мөр → {comm, pid, state, state_char} эсвэл формат таарахгүй бол None."""
-    m = _BOOK.match(line.strip())
+    """/proc/pid-ийн эхний мөр → {comm, pid, state, state_char} эсвэл формат таарахгүй бол None."""
+    lines = line.strip().splitlines()
+    m = _BOOK.match(lines[0].strip()) if lines else None
     if not m:
         return None
     comm, pid, st = m.groups()
@@ -158,8 +159,30 @@ def parse_book_line(line):
     return {"comm": comm, "pid": int(pid), "state": -1, "state_char": st}
 
 
+# Багийн src/kmod/pid.c номын мөрийн дараа эцэг, хүүхдүүдийг нэмж хэвлэдэг:
+#   parent = [bash] ppid = [1300]
+#   child = [vim] pid = [1400] state = [1]
+_PARENT = re.compile(r"^parent\s*=\s*\[(.*)\]\s*ppid\s*=\s*\[(\d+)\]$")
+_CHILD = re.compile(r"^child\s*=\s*\[(.*)\]\s*pid\s*=\s*\[(\d+)\]\s*state\s*=\s*\[(-?\d+)\]$")
+
+
+def parse_relation_lines(lines):
+    """Номын мөрийн дараах мөрүүд → (parent эсвэл None, [child], танигдаагүй мөрүүд)."""
+    parent, children, unknown = None, [], []
+    for line in (x.strip() for x in lines):
+        if not line:
+            continue
+        if m := _PARENT.match(line):
+            parent = {"comm": m.group(1), "pid": int(m.group(2))}
+        elif m := _CHILD.match(line):
+            children.append({"comm": m.group(1), "pid": int(m.group(2)), "state": int(m.group(3))})
+        else:
+            unknown.append(line)
+    return parent, children, unknown
+
+
 def _write_read_book(pid, calls):
-    """PID-ийг /proc/pid руу бичээд номын мөрийг уншина. _module_lock дотор дуудна."""
+    """PID-ийг /proc/pid руу бичээд гаралтыг (номын мөр + нэмэлт мөрүүд) уншина. _module_lock дотор."""
     t = time.perf_counter()
     try:
         with open(PROC_PID, "w") as f:
@@ -169,9 +192,9 @@ def _write_read_book(pid, calls):
     calls.append(_call("write", PROC_PID, f"{pid}\\n", len(f"{pid}\n"), t))
     t = time.perf_counter()
     with open(PROC_PID) as f:
-        book_line = f.read().strip()
-    calls.append(_call("read", PROC_PID, book_line, len(book_line), t))
-    return book_line
+        out = f.read().strip()
+    calls.append(_call("read", PROC_PID, out.split("\n", 1)[0], len(out), t))
+    return out
 
 
 class ModuleBackend:
@@ -186,7 +209,7 @@ class ModuleBackend:
     def query(self, pid):
         calls = []                                # UI-ийн "Module дуудлагын лог"-д
         with _module_lock:
-            book_line = _write_read_book(pid, calls)
+            book_line = _write_read_book(pid, calls).split("\n", 1)[0]
             t = time.perf_counter()
             with open(PROC_TREE) as f:
                 raw = f.read()
@@ -256,10 +279,12 @@ class ProcfsBackend:
 
 
 class BookBackend(ProcfsBackend):
-    """Module зөвхөн номын /proc/pid-тэй (/proc/pid_tree-гүй) үед.
+    """Module зөвхөн /proc/pid-тэй (/proc/pid_tree-гүй) үед.
 
-    Task-ийн command, pid, state-ийг module-ээс; эцэг/хүүгийн холбоо, uid, урсгалын тоог
-    /proc/<pid>/stat-аас авна. UI-д хаанаас ирснийг тодорхой тэмдэглэнэ.
+    Task-ийн command, pid, state-ийг module-ээс авна. Module номын мөрийн дараа
+    parent/child мөр хэвлэдэг бол (багийн src/kmod/pid.c) хүүхдийн жагсаалтыг мөн
+    module-ээс; үгүй бол /proc/<pid>/stat-аас. uid, урсгалын тоо, PID 1 хүртэлх өвөг
+    эцгүүдийг procfs-оос. UI-д хаанаас ирснийг тодорхой тэмдэглэнэ.
     """
     name = "kernel module (/proc/pid) + procfs шатлал (/proc/pid_tree алга)"
     mode = "book"
@@ -271,27 +296,53 @@ class BookBackend(ProcfsBackend):
     def query(self, pid):
         calls = []
         with _module_lock:
-            book_line = _write_read_book(pid, calls)
-        if not book_line:
+            out = _write_read_book(pid, calls)
+        if not out:
             raise TaskError(404, f"PID {pid} олдсонгүй — module 0 байт буцаалаа (номын шаардлага)")
+        lines = out.splitlines()
+        book_line = lines[0].strip()
         book = parse_book_line(book_line)
         if book is None:
             raise TaskError(502, f"/proc/pid-ийн гаралт номын форматтай таарахгүй: '{book_line[:80]}' "
                                  "(хүлээгдэх: command = [..] pid = [..] state = [..]) — "
                                  "python3 src/ui/contract_check.py-оор шалгана уу")
+        parent, mod_children, unknown = parse_relation_lines(lines[1:])
         t = time.perf_counter()
         task, ancestors, children = self._relations(pid)
         task = dict(task, comm=book["comm"], state=book["state"])
         if book["state_char"]:
             task["state_char"] = book["state_char"]
             task["state_name"] = STATE_NAMES.get(book["state_char"], "?")
-        calls.append(_call("read", f"/proc/{pid}/stat (шатлал, procfs)",
+        warnings, source = [], "procfs"
+        if book["pid"] != pid:
+            # find_vpid() нь бичсэн PID-ийг олсон ч task->pid (global) хэвлэсэн — WSL, контейнерт
+            # PID namespace өөр. Module-ийн хүүхдийн PID-ийг энд ашиглах боломжгүй.
+            warnings.append(f"Module PID [{book['pid']}] хэвлэсэн, бичсэн нь {pid}: global PID "
+                            "(WSL/контейнерийн PID namespace). task_pid_vnr() ашиглавал таарна — "
+                            "эцэг/хүүгийн холбоог /proc-оос авав.")
+        elif parent or mod_children:
+            source = "module"
+            if parent and parent["pid"] != task["ppid"]:
+                warnings.append(f"Module-ийн ppid [{parent['pid']}] ≠ /proc-ийн {task['ppid']}")
+            children = []
+            for c in mod_children:                # module-ийн дарааллаар; uid/урсгалыг procfs-оос
+                s = self._stat(c["pid"]) or {
+                    "pid": c["pid"], "tgid": c["pid"], "ppid": pid, "state_char": "?",
+                    "state_name": "?", "uid": -1, "threads": 0}
+                children.append(dict(s, comm=c["comm"], state=c["state"]))
+        if unknown:
+            warnings.append(f"/proc/pid-д танигдаагүй {len(unknown)} мөр: '{unknown[0][:60]}'")
+        if source == "module":
+            self.name = "kernel module (/proc/pid: task + parent/child мөр) + procfs (uid, урсгал, өвөг эцэг)"
+        calls.append(_call("read", f"/proc/{pid}/stat ({'uid, урсгал' if source == 'module' else 'шатлал'}, procfs)",
                            f"ppid={task['ppid']} хүүхэд={len(children)}", 0, t))
+        note = ("# хүүхдүүд module-ийн child мөрөөс; uid, урсгал, өвөг эцгийг /proc/<pid>/stat-аас уншив"
+                if source == "module" else
+                "# эцэг/хүүгийн холбоог /proc/<pid>/stat-аас уншив (/proc/pid_tree алга)")
         return {"book_line": book_line, "task": task, "ancestors": ancestors,
                 "children": children,
                 "summary": {"ancestors": len(ancestors), "children": len(children), "truncated": 0},
-                "raw": book_line + "\n# /proc/pid_tree алга — эцэг/хүүгийн холбоог /proc/<pid>/stat-аас уншив\n",
-                "calls": calls}
+                "raw": out + "\n" + note + "\n", "calls": calls, "warnings": warnings}
 
 
 def select_backend(fallback_allowed):
@@ -474,6 +525,7 @@ class Handler(BaseHTTPRequestHandler):
                     "expand": sorted(expand),
                     "nodes": counter["nodes"], "queries": counter["queries"],
                     "calls": root["calls"], "demo_root": Demo.root_pid,
+                    "warnings": root.get("warnings", []),
                     "elapsed_ms": round((time.perf_counter() - t0) * 1000, 1),
                 })
             elif url.path == "/api/processes":

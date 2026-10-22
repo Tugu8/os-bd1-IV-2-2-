@@ -30,7 +30,7 @@ flowchart LR
 | `parse_tree_output()` | `/proc/pid_tree`-ийн `task / ancestor / child / summary` мөрүүдийг JSON болгоно (`comm` мөрийн төгсгөлд — зай агуулж болно) |
 | `build_tree()` | Сонгосон PID-ээс доош `depth` түвшин хүртэл хүү бүрийг module-ээс дахин асууж мод байгуулна (дээд хязгаар 400 зангилаа) |
 | `Demo` | `demo_tree.py`-г тусдаа процессын бүлэгт ажиллуулна; signal-ийг **зөвхөн тэр бүлэгт** илгээнэ |
-| `BookBackend` (`book` горим) | Module зөвхөн номын `/proc/pid`-тэй үед: command/pid/`__state` — module-ээс, эцэг/хүүгийн холбоо — `/proc/<pid>/stat`-аас; UI-д тэмдэглэнэ |
+| `BookBackend` (`book` горим) | Module зөвхөн `/proc/pid`-тэй үед (багийн `src/kmod/pid.c`): command/pid/`__state` ба `child` мөрүүд — module-ээс; uid, урсгал, өвөг эцэг — `/proc/<pid>/stat`-аас; global PID хэвлэвэл UI-д ⚠ |
 | `ProcfsBackend` (`--fallback`) | Module бэлэн болохоос өмнө UI хөгжүүлэхэд `/proc/<pid>/stat`-аас ижил бүтэц; UI-д "kernel module биш" гэж тод харуулна |
 | `contract_check.py` | Module ↔ UI интерфейсийн шалгагч (34 шалгалт) — kmod-ийн хөгжүүлэгч module-аа UI-тай нийцэж буйг өөрөө шалгана |
 | `app.js` | `select()` → `diffTrees()` (өмнөхтэй) → `record()` (түүх) → `render()`; SVG зурах, түүх ◀ ▶, сценари, туршилт удирдах, лог |
@@ -161,6 +161,8 @@ Signal зөвхөн **demo процессын бүлэгт** (`os.getpgid(pid) =
 | `src/kmod/pid.c` (засварын дараа) | **34** | 0 | 0 | — |
 | `tests/book_modules/book_ok.ko` (зөвхөн `/proc/pid`, зөв) | 15 | 1 | 0 | `/proc/pid_tree` алга → UI `book` горим |
 | `tests/book_modules/book_naive.ko` (номын skeleton-ий хэв маяг) | 12 | 1 | **3** | global PID (WSL-д PID 1 = 1451), count-оос 37 байт илүү `copy_to_user`, `sscanf` нь `abc`-г хүлээн авч хуучин PID-ийг уншуулна |
+| багийн `src/kmod/pid.c` (main, eb67723) | 14 | 1 | **3** | `task->pid` — global PID: WSL-д `echo 1` → `pid = [256]`, parent/child PID ч мөн адил (энгийн Ubuntu VM-д таарна) |
+| мөн тэр, `task_pid_vnr()` болгосон (3 мөр) | **17** | 1 | 0 | `/proc/pid_tree` алга → `book` горим, хүүхдүүд module-ээс |
 
 Шалгагч UI-ийн өөрийн задлагчийг (`parse_book_line`, `parse_tree_output`) ашигладаг тул "✔" нь UI тухайн module-ийг зөв уншина гэсэн үг. `tests/book_modules/`-ийн хоёр туршилтын module-оор шалгагч алдааг үнэхээр илрүүлдгийг баталгаажуулсан.
 

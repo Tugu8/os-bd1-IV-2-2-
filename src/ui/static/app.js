@@ -267,6 +267,9 @@ function render(d, diff) {
     `· ${flattenTree(d.tree).size} зангилаа · ${d.queries} module асуулга · ${d.elapsed_ms} мс · ${d.backend}`;
   $("raw").textContent = d.raw;
   showMode(d.mode);
+  const warn = d.warnings || [];
+  $("warnings").hidden = !warn.length;
+  $("warnings").textContent = warn.map((w) => `⚠ ${w}`).join("\n");
   renderCalls(d);
   renderDiff(diff);
   drawTree(d, diff);

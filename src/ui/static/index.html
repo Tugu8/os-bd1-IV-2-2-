@@ -74,7 +74,8 @@
   <section class="content">
     <div id="error" class="banner error" hidden></div>
     <div id="fallback" class="banner warn" hidden>⚠ Нөөц горим: өгөгдлийг kernel module биш <code>/proc/&lt;pid&gt;/stat</code>-аас уншиж байна.</div>
-    <div id="bookmode" class="banner warn" hidden>ℹ Module зөвхөн номын <code>/proc/pid</code>-тэй (<code>/proc/pid_tree</code> алга): command, pid, state-ийг module-ээс, эцэг/хүүгийн холбоог <code>/proc/&lt;pid&gt;/stat</code>-аас уншиж байна.</div>
+    <div id="warnings" class="banner warn" style="white-space: pre-line" hidden></div>
+    <div id="bookmode" class="banner warn" hidden>ℹ Module зөвхөн номын <code>/proc/pid</code>-тэй (<code>/proc/pid_tree</code> алга): command, pid, state-ийг module-ээс; хүүхдүүдийг module-ийн <code>child</code> мөрөөс (байвал) эсвэл <code>/proc/&lt;pid&gt;/stat</code>-аас уншиж байна.</div>
     <div id="scenario-banner" class="banner scenario" hidden>
       <span id="scenario-text"></span>
       <button type="button" id="scenario-close" title="Хаах">✕</button>

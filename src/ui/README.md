@@ -86,7 +86,7 @@ summary  ancestors=2 children=1 truncated=0
 | Горим | Хэзээ | Өгөгдөл хаанаас | UI-д |
 |---|---|---|---|
 | `module` | `/proc/pid` + `/proc/pid_tree` | бүгд module-ээс | ногоон "● module loaded" |
-| `book` | зөвхөн номын `/proc/pid` | command, pid, `__state` — **module**; эцэг/хүүгийн холбоо, uid, урсгал — `/proc/<pid>/stat` | шар шошго + ℹ banner; дуудлагын логт procfs мөр тусдаа |
+| `book` | зөвхөн `/proc/pid` (жнь багийн `src/kmod/pid.c`) | command, pid, `__state` — **module**; хүүхдүүд — module-ийн `child = [..] pid = [..] state = [..]` мөр байвал **module**, үгүй бол `/proc/<pid>/stat`; uid, урсгал, PID 1 хүртэлх өвөг эцэг — procfs | шар шошго + ℹ banner; дуудлагын логт procfs мөр тусдаа; module global PID хэвлэвэл ⚠ |
 | `fallback` | module байхгүй, `--fallback` өгсөн | бүгд `/proc/<pid>/stat` | "⚠ Нөөц горим … kernel module биш", номын мөрөнд `(fallback)` |
 
 `book` горимын зорилго: kmod эхлээд зөвхөн номын үндсэн даалгаврыг (`/proc/pid`) хийсэн ч UI мод зурж ажиллана — интеграцийн эрсдэлийг бууруулна. Module байхгүй, `--fallback`-гүй → **503**; `/proc/pid` номын формат биш мөр буцаавал → **502** (буруу дүрслэхгүй, `contract_check.py`-г санал болгоно). `fallback` нь UI хөгжүүлэлтэд зориулсан — эцсийн туршилт, screenshot-ыг module ачаалсан үед хийнэ.
@@ -107,6 +107,8 @@ python3 src/ui/contract_check.py       # ✔ / ⚠ / ✖ хүснэгт; ✖ б�
 | `src/kmod/pid.c` (засварын дараа) | **34** | 0 | 0 | — |
 | `tests/book_modules/book_ok.ko` (зөвхөн `/proc/pid`, зөв) | 15 | 1 | 0 | `/proc/pid_tree` алга → UI `book` горим |
 | `tests/book_modules/book_naive.ko` (номын skeleton-ий хэв маяг) | 12 | 1 | **3** | global PID (WSL-д PID 1 = 1451), count-оос 37 байт илүү `copy_to_user`, `sscanf` нь `abc`-г хүлээн авч хуучин PID-ийг уншуулна |
+| багийн `src/kmod/pid.c` (main, eb67723) | 14 | 1 | **3** | `task->pid` — global PID: WSL-д `echo 1` → `pid = [256]`, parent/child PID ч мөн адил (энгийн Ubuntu VM-д таарна) |
+| мөн тэр, `task_pid_vnr()` болгосон (3 мөр) | **17** | 1 | 0 | `/proc/pid_tree` алга → `book` горим, хүүхдүүд module-ээс |
 
 ## API (server.py)
 
@@ -137,7 +139,7 @@ node --test src/ui/tests/test_tree.mjs             # 12 тест — модны 
 | 14 | `+ Хүү процесс` → demo_new_N, `+ Zombie` → Z |
 | 15 | амьдралын мөчлөг: STOP → **T**, CONT → S/R, TERM → **Z**, wait() → алга, zombie 0 |
 | 16 | аюулгүй байдал: PID 1 руу signal → **403**, demo_root → 400, KILL signal → 400, `abc` → 400 |
-| 17–18 | задлагч: номын мөр (тоо/үсэг state, `comm`-д `]`, буруу формат → None), `/proc/pid_tree`-д зай, `=`, `\|` агуулсан `comm` |
+| 17–18a | задлагч: багийн parent/child мөрүүд, номын мөр (тоо/үсэг state, `comm`-д `]`, буруу формат → None), `/proc/pid_tree`-д зай, `=`, `\|` агуулсан `comm` |
 | 19–21 | горим: `fallback`, module-гүй → 503, `/proc/pid` формат буруу → 502 (зам түр сольж, module-оос үл хамаарна) |
 | 22 | `book` горим = `module` горим: PID 1-ийн task талбарууд, хүүхдүүд, өвөг эцгийн гинж ижил (module шаардлагатай) |
 | 23 | газар дээр нь нээх: depth=0 + `expand=demo_sleeper` → зөвхөн тэр зангилаа нээгдэж, ач нар навч (2 module асуулга); модонд байхгүй PID-ийг үл тооно |

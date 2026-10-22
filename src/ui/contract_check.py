@@ -105,15 +105,36 @@ def check_book():
     write(PROC_PID, f"{me}\n")
     line = read(PROC_PID)
     b = server.parse_book_line(line)
-    check("Номын формат: command = [..] pid = [..] state = [..]", b is not None, line.strip() or "(хоосон)")
+    check("Номын формат: command = [..] pid = [..] state = [..]", b is not None, line.partition(chr(10))[0] or "(хоосон)")
     if b is None:
         check("UI-ийн regex", False, book_re)
         return
-    check("Нэг мөр, '\\n'-ээр төгсөнө", line.count("\n") == 1 and line.endswith("\n"), repr(line[-12:]))
+    rest = line.splitlines()[1:]
+    if rest:                       # багийн kmod: номын мөрийн дараа parent/child мөрүүд
+        _, _, unknown = server.parse_relation_lines(rest)
+        check("Нэмэлт мөр бүр parent = [..] ppid = [..] / child = [..] pid = [..] state = [..]",
+              not unknown, unknown[0][:60] if unknown else f"{len(rest)} мөр — UI module-ээс хүүхдүүдийг уншина")
+    else:
+        check("Нэг мөр, '\\n'-ээр төгсөнө", line.count("\n") == 1 and line.endswith("\n"), repr(line[-12:]))
     check("pid = бичсэн PID (namespace: task_pid_vnr)", b["pid"] == me,
           f"{b['pid']} ≠ {me} — global PID хэвлэж байж магадгүй" if b["pid"] != me else str(me))
     check("command = /proc/self/comm", b["comm"] == comm_of(me), f"[{b['comm']}]")
     check("Дахин нээж уншихад ижил мөр (төлөв 'дуусаагүй')", read(PROC_PID) == line)
+    if rest:
+        kid = subprocess.Popen(["sleep", "30"])
+        try:
+            wait_state(kid.pid, "S")
+            write(PROC_PID, f"{me}\n")
+            parent, kids, _ = server.parse_relation_lines(read(PROC_PID).splitlines()[1:])
+            check("parent ppid = getppid() (namespace)", bool(parent) and parent["pid"] == os.getppid(),
+                  f"{parent and parent['pid']} vs {os.getppid()}")
+            check(f"child жагсаалтад хүү sleep ({kid.pid})", any(c["pid"] == kid.pid for c in kids),
+                  str([c["pid"] for c in kids]))
+        finally:
+            kid.kill()
+            kid.wait()
+        write(PROC_PID, f"{me}\n")
+        line = read(PROC_PID)
     text, over = small_reads(PROC_PID)
     check("8 байтаар хэсэгчлэн уншихад бүтэн мөр (count, *pos-ыг хүндэтгэнэ)",
           over == 0 and text == line,
@@ -165,7 +186,7 @@ def check_book():
 def check_tree():
     if not os.path.exists(PROC_TREE):
         check("/proc/pid_tree байгаа эсэх", False,
-              "алга — UI 'book' горимоор (шатлал procfs-оос) ажиллана", soft=True)
+              "алга — UI 'book' горимоор (хүүхдүүд /proc/pid-ийн child мөрөөс эсвэл procfs-оос) ажиллана", soft=True)
         return
     me = os.getpid()
     zpid = os.fork()                       # wait() хийхгүй → Z

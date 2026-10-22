@@ -244,6 +244,20 @@ class ParserTest(unittest.TestCase):
             with self.subTest(line=bad):
                 self.assertIsNone(p(bad))
 
+    def test_18a_team_format(self):
+        """Багийн src/kmod/pid.c: номын мөр + parent/child мөрүүд."""
+        out = ("command = [bash] pid = [1395] state = [1]\n"
+               "parent = [Relay(294)] ppid = [1300]\n"
+               "child = [vim x] pid = [1400] state = [1]\n"
+               "child = [cat] pid = [1401] state = [0]\n")
+        self.assertEqual(server.parse_book_line(out)["pid"], 1395)          # эхний мөр
+        parent, kids, unknown = server.parse_relation_lines(out.splitlines()[1:])
+        self.assertEqual(parent, {"comm": "Relay(294)", "pid": 1300})
+        self.assertEqual([(c["comm"], c["pid"], c["state"]) for c in kids],
+                         [("vim x", 1400, 1), ("cat", 1401, 0)])
+        self.assertEqual(unknown, [])
+        self.assertEqual(server.parse_relation_lines(["sibling = [x]"])[2], ["sibling = [x]"])
+
     def test_18_tree_comm_with_spaces(self):
         raw = ("task pid=5 tgid=5 ppid=1 state=1 state_char=S uid=0 threads=1 comm=Web Content\n"
                "ancestor pid=1 tgid=1 ppid=0 state=1 state_char=S uid=0 threads=1 comm=init\n"
