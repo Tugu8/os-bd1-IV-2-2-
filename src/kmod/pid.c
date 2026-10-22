@@ -13,41 +13,53 @@
 #include <linux/proc_fs.h>
 #include <linux/rcupdate.h>
 #include <linux/sched.h>
+#include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
 #define PROC_NAME "pid"
 #define MAX_INPUT_LEN 32
-#define BUFFER_SIZE 128
 
 /* хамгийн сүүлд бичсэн PID */
 static long l_pid;
 
-static ssize_t proc_read(struct file *file, char __user *usr_buf,
-			 size_t count, loff_t *pos)
+/*
+ * Гаралт:
+ *   command = [bash] pid = [1395] state = [1]
+ *   parent = [gnome-terminal-] ppid = [1200]
+ *   child = [vim] pid = [1400] state = [1]
+ *   ...
+ * Байхгүй PID бол юу ч хэвлэхгүй (read 0 буцаана).
+ */
+static int pid_show(struct seq_file *m, void *v)
 {
-	struct task_struct *task;
-	char *buf;
-	int len = 0;
-	ssize_t ret;
-
-	buf = kmalloc(BUFFER_SIZE, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
+	struct task_struct *task, *parent, *child;
 
 	rcu_read_lock();
 	task = pid_task(find_vpid(l_pid), PIDTYPE_PID);
-	if (task)
-		len = scnprintf(buf, BUFFER_SIZE,
-				"command = [%s] pid = [%d] state = [%u]\n",
-				task->comm, task->pid,
-				READ_ONCE(task->__state));
-	rcu_read_unlock();
+	if (!task)
+		goto out;
 
-	/* байхгүй PID бол len = 0 тул 0 буцаана */
-	ret = simple_read_from_buffer(usr_buf, count, pos, buf, len);
-	kfree(buf);
-	return ret;
+	seq_printf(m, "command = [%s] pid = [%d] state = [%u]\n",
+		   task->comm, task->pid, READ_ONCE(task->__state));
+
+	parent = rcu_dereference(task->real_parent);
+	if (parent && parent != task)
+		seq_printf(m, "parent = [%s] ppid = [%d]\n",
+			   parent->comm, parent->pid);
+
+	list_for_each_entry_rcu(child, &task->children, sibling)
+		seq_printf(m, "child = [%s] pid = [%d] state = [%u]\n",
+			   child->comm, child->pid,
+			   READ_ONCE(child->__state));
+out:
+	rcu_read_unlock();
+	return 0;
+}
+
+static int proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, pid_show, NULL);
 }
 
 static ssize_t proc_write(struct file *file, const char __user *usr_buf,
@@ -83,8 +95,11 @@ static ssize_t proc_write(struct file *file, const char __user *usr_buf,
 }
 
 static const struct proc_ops pid_proc_ops = {
-	.proc_read = proc_read,
+	.proc_open = proc_open,
+	.proc_read = seq_read,
 	.proc_write = proc_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 
 static int __init pid_init(void)
