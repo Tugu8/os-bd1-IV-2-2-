@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Hierarchy — IV-2-2</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">⎇</span>
+    <div>
+      <h1>Task Hierarchy</h1>
+      <p>Kernel module /proc/pid · OSC Ch.3 Project 2 · F.CSM302 · IV-2-2</p>
+    </div>
+  </div>
+  <div id="status" class="pill pill-unknown" title="Backend">шалгаж байна…</div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar">
+    <section class="panel">
+      <h2>Task сонгох</h2>
+      <form id="query-form" class="row">
+        <input id="pid-input" type="text" inputmode="numeric" placeholder="PID (жнь 1)" autocomplete="off" aria-label="PID">
+        <button type="submit" class="primary">Харах</button>
+      </form>
+      <label class="field">Хүү процессын гүн
+        <select id="depth">
+          <option value="0">0 — зөвхөн шууд хүүхдүүд</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </label>
+      <div class="row wrap">
+        <button type="button" data-pid="1">PID 1</button>
+        <button type="button" id="demo-start">Demo мод үүсгэх</button>
+        <button type="button" id="demo-stop">Demo зогсоох</button>
+        <button type="button" id="reset">Reset</button>
+      </div>
+      <button type="button" id="scenario" class="wide" title="fork → STOP → CONT → TERM → zombie → wait() — алхам бүрийг тайлбартай тоглуулж Түүхэнд хадгална">▶ Сценари: процессын амьдралын мөчлөг</button>
+      <label class="check"><input type="checkbox" id="auto"> Автомат шинэчлэх
+        <select id="interval"><option value="1000">1 с</option><option value="2000" selected>2 с</option><option value="5000">5 с</option></select>
+      </label>
+    </section>
+
+    <section class="panel" id="demo-panel" hidden>
+      <h2>Туршилт удирдах <span class="muted">(demo мод)</span></h2>
+      <p class="hint tight">demo_root-д:</p>
+      <div class="row wrap">
+        <button type="button" data-demo="spawn" title="SIGUSR1 → fork() шинэ хүү (S)">+ Хүү процесс</button>
+        <button type="button" data-demo="zombie" title="SIGUSR2 → шууд дуусах хүү → Z">+ Zombie</button>
+        <button type="button" data-demo="reap" title="SIGHUP → demo_root wait() → zombie арилна">wait() — цэвэрлэх</button>
+      </div>
+      <p class="hint tight">Сонгосон процесс: <b id="sel-label">—</b></p>
+      <div class="row wrap">
+        <button type="button" data-sig="STOP" title="SIGSTOP → T">STOP</button>
+        <button type="button" data-sig="CONT" title="SIGCONT → S/R">CONT</button>
+        <button type="button" data-sig="TERM" class="danger" title="SIGTERM → дуусна → эцэг wait() хийх хүртэл Z">KILL</button>
+      </div>
+      <p class="hint tight" id="demo-hint">Зөвхөн demo процесст илгээгдэнэ.</p>
+    </section>
+
+    <section class="panel grow">
+      <h2>Процессууд <span id="proc-count" class="muted"></span></h2>
+      <input id="filter" type="search" placeholder="PID эсвэл нэрээр шүүх" aria-label="Шүүх">
+      <ul id="proc-list" class="proc-list"></ul>
+    </section>
+  </aside>
+
+  <section class="content">
+    <div id="error" class="banner error" hidden></div>
+    <div id="fallback" class="banner warn" hidden>⚠ Нөөц горим: өгөгдлийг kernel module биш <code>/proc/&lt;pid&gt;/stat</code>-аас уншиж байна.</div>
+    <div id="warnings" class="banner warn" style="white-space: pre-line" hidden></div>
+    <div id="bookmode" class="banner warn" hidden>ℹ Module зөвхөн номын <code>/proc/pid</code>-тэй (<code>/proc/pid_tree</code> алга): command, pid, state-ийг module-ээс; хүүхдүүдийг module-ийн <code>child</code> мөрөөс (байвал) эсвэл <code>/proc/&lt;pid&gt;/stat</code>-аас уншиж байна.</div>
+    <div id="scenario-banner" class="banner scenario" hidden>
+      <span id="scenario-text"></span>
+      <button type="button" id="scenario-close" title="Хаах">✕</button>
+    </div>
+    <div id="hist-banner" class="banner info" hidden>
+      <span id="hist-text"></span>
+      <button type="button" id="hist-live">Live руу буцах</button>
+    </div>
+
+    <div class="cards">
+      <section class="panel book">
+        <h2>Номын интерфейс</h2>
+        <pre id="book"><span class="muted">PID сонгоно уу</span></pre>
+      </section>
+      <section class="panel">
+        <h2>Task мэдээлэл</h2>
+        <dl id="info" class="info"></dl>
+      </section>
+    </div>
+
+    <section class="panel tree-panel">
+      <div class="tree-head">
+        <h2>Шатлал <span id="tree-meta" class="muted"></span> <span id="search-hits" class="muted"></span></h2>
+        <ul class="legend" id="legend"></ul>
+      </div>
+      <label class="check small"><input type="checkbox" id="compact"> Өвөг эцгийг товчлох (нэг мөрөнд)</label>
+      <nav id="crumbs" class="crumbs" hidden aria-label="Өвөг эцгийн гинж"></nav>
+      <div id="diff" class="diff" hidden></div>
+      <div class="tree-scroll"><svg id="tree" role="img" aria-label="Task hierarchy"></svg></div>
+      <p class="hint">Зангилаа дээр дарж (эсвэл Tab → <kbd>↑</kbd> эцэг, <kbd>↓</kbd> хүүхэд, <kbd>←</kbd><kbd>→</kbd> ах дүү, <kbd>Enter</kbd>) тэр task руу шилжинэ. Зангилааны <b>⊕</b> (эсвэл <kbd>+</kbd>) — сонголтоо солилгүй хүүхдүүдийг нь энд нээнэ, <b>⊖</b> (<kbd>−</kbd>) — хаана.
+        Зүүн талын шүүлтүүр модон дээр ч тодруулна. Тасархай хүрээ — хүүхдүүдийг нь хараахан асуугаагүй.
+        Ногоон гэрэлтэлт — <b>шинэ</b> процесс, шар — <b>төлөв өөрчлөгдсөн</b> (өмнөх шинэчлэлтээс хойш).</p>
+    </section>
+
+    <section class="panel">
+      <div class="tree-head">
+        <h2>Түүх <span id="hist-count" class="muted"></span></h2>
+        <div class="row nomargin">
+          <button type="button" id="hist-prev" title="Өмнөх snapshot">◀</button>
+          <button type="button" id="hist-next" title="Дараах snapshot">▶</button>
+          <button type="button" id="export-json" title="Бүх түүхийг JSON (тайлбар, diff, module-ийн гаралт, лог) болгон татах">⤓ JSON</button>
+          <button type="button" id="export-svg" title="Одоогийн модыг SVG зураг болгон татах (тайлан, постерт)">⤓ SVG</button>
+          <button type="button" id="export-png" title="Одоогийн модыг PNG (2×) болгон татах — Word, Teams-д шууд">⤓ PNG</button>
+        </div>
+      </div>
+      <ol id="history" class="history"></ol>
+    </section>
+
+    <details class="panel raw" id="calls-panel">
+      <summary>Module дуудлагын лог — энэ хүсэлт kernel module-тэй хэрхэн харилцсан бэ</summary>
+      <table class="calls">
+        <thead><tr><th>#</th><th>Үйлдэл</th><th>Файл</th><th>Өгөгдөл</th><th>Байт</th><th>µs</th></tr></thead>
+        <tbody id="calls"></tbody>
+      </table>
+      <p class="hint" id="calls-total"></p>
+    </details>
+
+    <details class="panel raw" id="raw-panel">
+      <summary>Module-ийн түүхий гаралт — <code>cat /proc/pid_tree</code></summary>
+      <pre id="raw"></pre>
+    </details>
+  </section>
+</main>
+
+<script src="/static/tree.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
