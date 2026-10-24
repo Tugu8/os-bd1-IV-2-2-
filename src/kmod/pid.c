@@ -42,16 +42,16 @@ static int pid_show(struct seq_file *m, void *v)
 		goto out;
 
 	seq_printf(m, "command = [%s] pid = [%d] state = [%u]\n",
-		   task->comm, task->pid, READ_ONCE(task->__state));
+		   task->comm, task_pid_vnr(task), READ_ONCE(task->__state));
 
 	parent = rcu_dereference(task->real_parent);
 	if (parent && parent != task)
 		seq_printf(m, "parent = [%s] ppid = [%d]\n",
-			   parent->comm, parent->pid);
+			   parent->comm, task_pid_vnr(parent));
 
 	list_for_each_entry_rcu(child, &task->children, sibling)
 		seq_printf(m, "child = [%s] pid = [%d] state = [%u]\n",
-			   child->comm, child->pid,
+			   child->comm, task_pid_vnr(child),
 			   READ_ONCE(child->__state));
 out:
 	rcu_read_unlock();
