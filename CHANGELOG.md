@@ -9,6 +9,8 @@
   - Write хэсэг: `kmalloc`, `copy_from_user`, `kstrtol`; хязгаараас гадуурх PID-ийг татгалзана.
   - Read хэсэг: `seq_file`-ээр номын мөр (`command = [..] pid = [..] state = [..]`), дараа нь `parent` ба `child` мөрүүд.
 - **docs**: README Quick Start, орчин, тест; CONTRIBUTING (ажлын урсгал, semantic commit, review, хувилбар); CHANGELOG.
+ - **docs** (B241940099): `docs/Manual.md` хэрэглэгчийн хэсэг: дүрслэлийн тэмдэг, өнгө, 5 жишээ, түгээмэл алдаа, гарын товч.
+   - **review** (B241940099): `review/README.md` IV-2-5-ийн шүүмжийн зохион байгуулалт, checklist, Review.pdf-ийн бүтэц.
 
 ### Засвар
 - **docs**: шүүмжлэх багийн код II-4-5 → **IV-2-5** (Topic and Peer Review Allocation хүснэгтийн дагуу).
