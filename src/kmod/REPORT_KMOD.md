@@ -151,12 +151,37 @@ sudo rmmod pid && sudo dmesg | tail -2    # "/proc/pid created" / "removed"
 | 32 байтаас урт мөр | `Invalid argument` |
 | Kernel thread (`2`, kthreadd) | Мэдээлэл гарна, олон kernel thread child |
 
-Бодит гаралт болон screenshot-уудыг `tests/` (B231910003) хэсгээс авна.
+### 7.1 Bare-metal дээрх бодит үр дүн
+
+Туршсан орчин: Ubuntu 24.04.5 LTS (bare-metal, dual boot, `systemd-detect-virt` = `none`), kernel `7.0.0-34-generic`, gcc 13.3.0, Secure Boot унтраалттай. Бүрэн гаралт: [`tests/kmod_baremetal.txt`](../../tests/kmod_baremetal.txt).
+
+| Оролт | Бодит үр дүн | Таарсан эсэх |
+|---|---|---|
+| bash-ийн PID (`sleep 300 &`-ийн дараа) | `command = [bash] ... state = [1]`, `child = [sleep] ... state = [8193]` | ✔ |
+| `1` | `command = [systemd]`, `parent = [swapper/0] ppid = [0]`, 33 `child` мөр | ✔ |
+| `2` | `command = [kthreadd]`, `parent = [swapper/0] ppid = [0]`, 224 `child` мөр | ✔ |
+| `999999` | Write амжилттай, read 0 байт | ✔ |
+| `abc`, `-5`, `0`, хоосон мөр, `12abc` | `write error: Invalid argument`, өмнөх PID хэвээр | ✔ |
+| `99999999` | `Invalid argument` | ✔ |
+| 33 тэмдэгттэй мөр (34 байт) | `Invalid argument` | ✔ |
+| `echo -n 1` (`\n`-гүй) | Хүлээж авна | ✔ |
+| `' 1'` (урд талдаа зайтай) | `Invalid argument` — `kstrtol` урд талын зайг зөвшөөрдөггүй | ✔ |
+| `src/ui/contract_check.py` | 17 ✔, 1 ⚠ (`/proc/pid_tree` байхгүй — UI `book` горимоор ажиллана), 0 ✖ | ✔ |
+
+`insmod` хийхэд `module verification failed: signature and/or required key missing - tainting kernel` гэсэн анхааруулга гарсан. Энэ нь гарын үсэггүй module ачаалсныг л тэмдэглэдэг, ажиллагаанд нөлөөлөхгүй.
+
+UI-г мөн ижил машин дээр module-тэй хамт ажиллуулсан (`book` горим):
+
+![UI: demo_root-ийн мод, __state = 8193](../../docs/images/ui_baremetal_tree.png)
+
+![UI: демо сценарийн түүх (SIGSTOP, SIGCONT, SIGTERM → zombie, wait)](../../docs/images/ui_baremetal_history.png)
+
+Бусад screenshot-уудыг `tests/` (B231910003) хэсгээс авна.
 
 ## 9. Хэлэлцүүлэг — хязгаарлалт
 
 - `l_pid` нь бүх хэрэглэгчид нэг глобал хувьсагч. Хоёр процесс зэрэг бичиж/уншвал бие биеийнхээ PID-ийг дарж болно. UI энэ асуудлаас `server.py`-ийн мутексээр (`_module_lock`) сэргийлдэг, харин терминалаас зэрэг ажиллуулбал зөрж болно.
 - `0666` эрхтэй тул ямар ч хэрэглэгч PID бичиж чадна. Гэхдээ зөвхөн `/proc/<pid>/stat`-д аль хэдийн нээлттэй мэдээллийг харуулдаг.
-- `state` нь тоон утга (`0` = running, `1` = interruptible sleep, `2` = uninterruptible гэх мэт). Үсгэн тайлбарыг UI хийдэг.
+- `state` нь `__state`-ийн тоон утга бөгөөд битийн маск юм (`0` = running, `1` = interruptible, `2` = uninterruptible, `4` = stopped). Бусад flag-тай нийлж том тоо гарч болно. Туршилтад `8193 = TASK_INTERRUPTIBLE | TASK_FREEZABLE` (sleep), `258 = TASK_UNINTERRUPTIBLE | TASK_WAKEKILL` (fork хийгээд exec хийж амжаагүй процесс), `260 = __TASK_STOPPED | TASK_WAKEKILL` гарсан. Үсгэн тайлбарыг (`S`, `R`, `D`, `T`) UI `/proc/<pid>/stat`-аас авдаг.
 - Kernel < 5.14 дээр (`__state` байхгүй) compile хийгдэхгүй.
 - Kernel module ажиллуулахад `linux-headers-$(uname -r)` хэрэгтэй. Анхдагч WSL2 kernel-д энэ багц байхгүй.

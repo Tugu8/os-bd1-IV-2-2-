@@ -1,0 +1,127 @@
+# Bare-metal kmod test — 2026-10-26 16:15 +08
+
+## Environment
+$ uname -a
+Linux tuguldur-Inspiron-15-3520 7.0.0-34-generic #34~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 15:38:29 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+(exit=0)
+
+$ grep -E '^(PRETTY_NAME|VERSION_ID)=' /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+VERSION_ID="24.04"
+(exit=0)
+
+$ gcc --version | head -1
+gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+(exit=0)
+
+$ systemd-detect-virt
+none
+(exit=1)
+
+$ mokutil --sb-state
+SecureBoot disabled
+(exit=0)
+
+$ ls -l /proc/pid
+-rw-rw-rw- 1 root root 0 Oct 26 16:15 /proc/pid
+(exit=0)
+
+## 1. Own shell (bash) + child
+$ sleep 300 &   # pid=5106, parent=5090
+$ echo 5090 > /proc/pid; cat /proc/pid
+command = [bash] pid = [5090] state = [1]
+parent = [bash] ppid = [5084]
+child = [sleep] pid = [5106] state = [8193]
+child = [cat] pid = [5108] state = [0]
+(exit=0)
+
+## 2. The sleep child itself
+$ echo 5106 > /proc/pid; cat /proc/pid
+command = [sleep] pid = [5106] state = [8193]
+parent = [bash] ppid = [5090]
+
+## 3. PID 1 (systemd)
+$ echo 1 > /proc/pid; cat /proc/pid | head -5; cat /proc/pid | wc -l
+command = [systemd] pid = [1] state = [1]
+parent = [swapper/0] ppid = [0]
+child = [systemd-journal] pid = [346] state = [1]
+child = [systemd-udevd] pid = [420] state = [1]
+child = [systemd-oomd] pid = [824] state = [1]
+lines: 35
+
+## 4. PID 2 (kthreadd)
+$ echo 2 > /proc/pid; cat /proc/pid | head -3; cat /proc/pid | wc -l
+command = [kthreadd] pid = [2] state = [1]
+parent = [swapper/0] ppid = [0]
+child = [pool_workqueue_] pid = [3] state = [1]
+lines: 226
+
+## 5. Non-existent PID
+$ echo 999999 > /proc/pid; cat /proc/pid | wc -c
+0
+(exit=0)
+
+## 6. Invalid input (previous PID must stay)
+$ echo 'abc' > /proc/pid    # len=4
+echo: write error: Invalid argument
+(exit=1)
+  first line after: command = [bash] pid = [5090] state = [1]
+$ echo '-5' > /proc/pid    # len=3
+echo: write error: Invalid argument
+(exit=1)
+  first line after: command = [bash] pid = [5090] state = [1]
+$ echo '0' > /proc/pid    # len=2
+echo: write error: Invalid argument
+(exit=1)
+  first line after: command = [bash] pid = [5090] state = [1]
+$ echo '99999999' > /proc/pid    # len=9
+echo: write error: Invalid argument
+(exit=1)
+  first line after: command = [bash] pid = [5090] state = [1]
+$ echo '' > /proc/pid    # len=1
+echo: write error: Invalid argument
+(exit=1)
+  first line after: command = [bash] pid = [5090] state = [1]
+$ echo '12abc' > /proc/pid    # len=6
+echo: write error: Invalid argument
+(exit=1)
+  first line after: command = [bash] pid = [5090] state = [1]
+$ echo '123456789012345678901234567890123' > /proc/pid    # len=34
+echo: write error: Invalid argument
+(exit=1)
+  first line after: command = [bash] pid = [5090] state = [1]
+
+## 7. Leading/trailing whitespace
+$ echo -n 1 > /proc/pid; head -1 /proc/pid
+command = [systemd] pid = [1] state = [1]
+(exit=0)
+
+$ echo ' 1' > /proc/pid; head -1 /proc/pid
+echo: write error: Invalid argument
+command = [systemd] pid = [1] state = [1]
+(exit=0)
+
+
+## 8. UI contract check
+$ python3 src/ui/contract_check.py
+✔ Номын формат: command = [..] pid = [..] state = [..]                             command = [python3] pid = [5227] state = [0]
+✔ Нэмэлт мөр бүр parent = [..] ppid = [..] / child = [..] pid = [..] state = [..]  1 мөр — UI module-ээс хүүхдүүдийг уншина
+✔ pid = бичсэн PID (namespace: task_pid_vnr)                                       5227
+✔ command = /proc/self/comm                                                        [python3]
+✔ Дахин нээж уншихад ижил мөр (төлөв 'дуусаагүй')                                  
+✔ parent ppid = getppid() (namespace)                                              5226 vs 5226
+✔ child жагсаалтад хүү sleep (5228)                                                [5228]
+✔ 8 байтаар хэсэгчлэн уншихад бүтэн мөр (count, *pos-ыг хүндэтгэнэ)                'command = [python3] pid = [5227] state = [0]\nparen'
+✔ PID 1 → init/systemd                                                             [systemd]
+✔ state: унтаж буй (S) → TASK_INTERRUPTIBLE (1) бит                                8193
+✔ state: зогсоосон (T) → __TASK_STOPPED (4) бит                                    260
+✔ Байхгүй PID (4194303) → 0 байт                                                   ''
+✔ Буруу оролт 'abc' → write алдаа                                                  EINVAL
+✔ Буруу оролт '-5' → write алдаа                                                   EINVAL
+✔ Буруу оролт '12abc' → write алдаа                                                EINVAL
+✔ Буруу оролт '99999999999999999999' → write алдаа                                 ERANGE
+✔ Буруу оролт ' ' → write алдаа                                                    EINVAL
+⚠ /proc/pid_tree байгаа эсэх                                                       алга — UI 'book' горимоор (хүүхдүүд /proc/pid-ийн child мөрөөс эсвэл procfs-оос) ажиллана
+
+17 ✔   1 ⚠   0 ✖   — UI ажиллана (⚠-г харна уу)
+UI-ийн сонгох горим: book
