@@ -1,6 +1,6 @@
 # src/prereq — 2-р бүлгийн бэлтгэл module ба build орчин
 
-**Хариуцагч:** B210930842 ([docs/TASKS.md](../../docs/TASKS.md)). OSC (2018) 2-р бүлгийн Programming Project "Linux Kernel Modules" — `src/kmod/pid.c`-ийн (3-р бүлэг) өмнөх бэлтгэл: module ачаалах/буулгах, kernel log, `/proc` файл үүсгэх.
+**Хариуцагч:** B210930842 ([docs/TASKS.md](../../docs/TASKS.md)) · **Бэлтгэсэн:** B190910014. OSC (2018) 2-р бүлгийн Programming Project "Linux Kernel Modules" — `src/kmod/pid.c`-ийн (3-р бүлэг) өмнөх бэлтгэл: module ачаалах/буулгах, kernel log, `/proc` файл үүсгэх.
 
 ## Агуулга
 
