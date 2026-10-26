@@ -17,7 +17,7 @@
 sudo apt install build-essential linux-headers-$(uname -r) python3
 cd src/kmod && make && cd ../..
 sudo insmod src/kmod/pid.ko
-python3 src/ui/server.py            # → http://localhost:8000
+python3 src/ui/server.py           # → http://localhost:8000
 ```
 
 ---
@@ -33,10 +33,21 @@ python3 src/ui/server.py            # → http://localhost:8000
 
 UI-д зөвхөн Python 3 болон браузер хэрэгтэй. Нэмэлт суулгац байхгүй.
 
+### B1.1 Дэмжих орчин
+
+| | Шаардлага |
+|---|---|
+| OS | Ubuntu 22.04 LTS / Debian (bare-metal эсвэл VM) |
+| Kernel | ≥ 5.14 (`proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14) |
+| Python | ≥ 3.8 (зөвхөн стандарт сан) |
+| Браузер | Edge, Chrome, Firefox (орчин үеийн хувилбар) |
+
+Туршсан орчин: Ubuntu 22.04 дээрх WSL2, kernel `6.6.87.2-microsoft-standard-WSL2`, gcc 11.4. Module-ийг build хийхэд `build-essential`, `linux-headers-$(uname -r)` хэрэгтэй. Node ≥ 18 нь зөвхөн UI-ийн модны тестэд хэрэгтэй, заавал биш. Дэлгэрэнгүйг §A-аас харна уу.
+
 ### B2. Эхлүүлэх
 
 ```bash
-sudo insmod src/kmod/pid.ko          # kernel module ачаалах (нэг удаа)
+sudo insmod src/kmod/pid.ko          # Kernel module ачаалах (нэг удаа)
 python3 src/ui/server.py             # UI сервер → http://localhost:8000
 ```
 
