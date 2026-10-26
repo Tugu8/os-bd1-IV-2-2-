@@ -170,7 +170,13 @@ sudo rmmod pid && sudo dmesg | tail -2    # "/proc/pid created" / "removed"
 
 `insmod` хийхэд `module verification failed: signature and/or required key missing - tainting kernel` гэсэн анхааруулга гарсан. Энэ нь гарын үсэггүй module ачаалсныг л тэмдэглэдэг, ажиллагаанд нөлөөлөхгүй.
 
-Screenshot-уудыг `tests/` (B231910003) хэсгээс авна.
+UI-г мөн ижил машин дээр module-тэй хамт ажиллуулсан (`book` горим):
+
+![UI: demo_root-ийн мод, __state = 8193](../../docs/images/ui_baremetal_tree.png)
+
+![UI: демо сценарийн түүх (SIGSTOP, SIGCONT, SIGTERM → zombie, wait)](../../docs/images/ui_baremetal_history.png)
+
+Бусад screenshot-уудыг `tests/` (B231910003) хэсгээс авна.
 
 ## 9. Хэлэлцүүлэг — хязгаарлалт
 
