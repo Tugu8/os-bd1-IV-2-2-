@@ -37,7 +37,7 @@ UI-д зөвхөн Python 3 болон браузер хэрэгтэй. Нэмэ
 
 | | Шаардлага |
 |---|---|
-| OS | Ubuntu 22.04 LTS / Debian (bare-metal эсвэл VM) |
+| OS | Ubuntu 22.04 LTS / Debian (bare-metal; VM зөвхөн macOS дээр UTM-ээр) |
 | Kernel | ≥ 5.14 (`proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14) |
 | Python | ≥ 3.8 (зөвхөн стандарт сан) |
 | Браузер | Edge, Chrome, Firefox (орчин үеийн хувилбар) |
