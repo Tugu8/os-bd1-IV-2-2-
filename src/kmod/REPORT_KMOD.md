@@ -182,6 +182,6 @@ UI-г мөн ижил машин дээр module-тэй хамт ажиллуу�
 
 - `l_pid` нь бүх хэрэглэгчид нэг глобал хувьсагч. Хоёр процесс зэрэг бичиж/уншвал бие биеийнхээ PID-ийг дарж болно. UI энэ асуудлаас `server.py`-ийн мутексээр (`_module_lock`) сэргийлдэг, харин терминалаас зэрэг ажиллуулбал зөрж болно.
 - `0666` эрхтэй тул ямар ч хэрэглэгч PID бичиж чадна. Гэхдээ зөвхөн `/proc/<pid>/stat`-д аль хэдийн нээлттэй мэдээллийг харуулдаг.
-- `state` нь `__state`-ийн тоон утга бөгөөд битийн маск юм (`0` = running, `1` = interruptible, `2` = uninterruptible, `4` = stopped). Бусад flag-тай нийлж том тоо гарч болно. Туршилтад `8193 = TASK_INTERRUPTIBLE | TASK_FREEZABLE` (sleep), `258 = TASK_UNINTERRUPTIBLE | TASK_WAKEKILL` (fork хийгээд exec хийж амжаагүй процесс), `260 = __TASK_STOPPED | TASK_WAKEKILL` гарсан. Үсгэн тайлбарыг (`S`, `R`, `D`, `T`) UI `/proc/<pid>/stat`-аас авдаг.
+- `state` нь `__state`-ийн тоон утга бөгөөд битийн маск юм (`0` = running, `1` = interruptible, `2` = uninterruptible, `4` = stopped). Бусад flag-тай нийлж том тоо гарч болно. Туршилтад `8193 = TASK_INTERRUPTIBLE | TASK_FREEZABLE` (sleep), `260 = __TASK_STOPPED | TASK_WAKEKILL` (SIGSTOP хийсэн процесс) гарсан. Үүнтэй адилаар `258 = TASK_UNINTERRUPTIBLE | TASK_WAKEKILL` гэх мэт утга ч гарч болно. Үсгэн тайлбарыг (`S`, `R`, `D`, `T`) UI `/proc/<pid>/stat`-аас авдаг.
 - Kernel < 5.14 дээр (`__state` байхгүй) compile хийгдэхгүй.
 - Kernel module ажиллуулахад `linux-headers-$(uname -r)` хэрэгтэй. Анхдагч WSL2 kernel-д энэ багц байхгүй.
