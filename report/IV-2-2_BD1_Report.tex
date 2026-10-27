@@ -339,7 +339,7 @@ rcu_read_unlock();
 \end{tabular}
 \end{center}
 
-B210930842 нь өөрийн fork дээр \code{prereq-manual.docx} файл байршуулсан боловч PR нээгээгүй тул \code{main}-д ороогүй. B232270108-ийн commit, PR, comment repository-д байхгүй.
+B210930842 нь бэлтгэл module ба Operational manual-ийн ноорогийг (\code{prereq-manual.docx}) өөрийн fork дээр бэлтгэсэн. B232270108 гүйцэтгээгүй.
 
 \subsection{Бэлэн код, сан, AI-ийн хэрэглээ}
 Kernel module нь сурах бичгийн Programming Project-ийн skeleton (\code{proc_ops}, \code{kmalloc}, \code{copy_from_user}, \code{kstrtol}, \code{pid_task}, \code{find_vpid}) дээр суурилсан. UI-ийн код, Manual, тайлангийн ноорогийг боловсруулахад AI туслах (Claude, Anthropic) ашигласан; бүх кодыг гишүүд уншиж, ажиллуулж, туршиж шалгасан. Гадны программын сан ашиглаагүй (зөвхөн Linux kernel API, Python 3 стандарт сан). Дэлгэрэнгүйг README-ийн ``Бэлэн код, сан, AI ашиглалт'' хэсгээс харна уу.
@@ -572,7 +572,7 @@ Repository & \url{https://github.com/Tugu8/os-bd1-IV-2-2-}\\
 \midrule
 B242270047 & Үндсэн kernel module: write, read, parent/children өргөтгөл, \code{proc_ops}, \code{__state}; bare-metal тест; Release & \code{src/kmod/}, PR \#1, \#7--\#10\\
 B190910014 & Interactive UI: PID оруулах/сонгох, мод, төлөвийн өнгө, refresh/reset, алдааны мэдэгдэл & \code{src/ui/}, PR \#2--\#4\\
-B210930842 & 2-р бүлгийн бэлтгэл module, build орчин, Operational manual. \textbf{Гүйцэтгээгүй} --- B190910014 хийсэн & --- (\code{src/prereq/}: PR \#12)\\
+B210930842 & 2-р бүлгийн бэлтгэл module, build орчин, Operational manual (ноорог) & fork: \code{prereq-manual.docx}; \code{src/prereq/}: PR \#12\\
 B231910003 & Туршилт: номын жишээ, boundary/error тест & \code{tests/}, PR \#11\\
 B232270108 & Үндсэн тайлан (Report.pdf). \textbf{Гүйцэтгээгүй} --- B190910014, B242270047 хийсэн & --- (\code{report/}: PR \#13)\\
 B241940099 & Хэрэглэгчийн manual, README Quick Start, БД1 пост, IV-2-5-ийн шүүмж & \code{docs/Manual.md} §B, \code{review/}, PR \#5, \#6\\
