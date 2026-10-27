@@ -36,8 +36,9 @@
   commentstyle=\color{green!45!black}, stringstyle=\color{red!60!black},
   frame=single, framerule=0.3pt, rulecolor=\color{gray!60}, backgroundcolor=\color{gray!6},
   columns=fullflexible, keepspaces=true, language=C, showstringspaces=false,
-  xleftmargin=0.5em, xrightmargin=0.5em, breaklines=true
+  xleftmargin=0.5em, xrightmargin=0.5em, breaklines=true, escapeinside={(*@}{@*)}
 }
+\newcommand{\cyrcmt}[1]{\textcolor{green!45!black}{\ttfamily\small #1}}
 \lstdefinestyle{out}{language={}, backgroundcolor=\color{black!3}}
 \newfontfamily\symfont{DejaVu Sans}
 \newcommand{\ok}{{\symfont\textcolor{green!50!black}{✔}}}
@@ -54,9 +55,11 @@
 %================================================================ Нүүр
 \begin{titlepage}
 \centering
-\vspace*{1.2cm}
+\vspace*{0.4cm}
 {\large ШИНЖЛЭХ УХААН ТЕХНОЛОГИЙН ИХ СУРГУУЛЬ\\ Мэдээлэл, Холбооны Технологийн Сургууль\par}
-\vspace{2cm}
+\vspace{0.6cm}
+\includegraphics[height=2.8cm]{must_logo.png}\par
+\vspace{0.6cm}
 {\large F.CSM302 Үйлдлийн систем — Бие даалт 1\par}
 \vspace{0.8cm}
 {\Huge\bfseries Linux Kernel Module for Task Information\par}
@@ -64,7 +67,7 @@
 {\Large \code{/proc/pid} ба Task hierarchy дүрслэл\par}
 \vspace{1cm}
 {\large Судалгаа, хэрэгжилт, туршилтын тайлан\par}
-\vspace{1.6cm}
+\vspace{1cm}
 \begin{tabular}{r p{10cm}}
 \textbf{Хуваарилалтын код:} & IV-2-2\\
 \textbf{Сурах бичиг:} & Silberschatz, Galvin, Gagne — OSC (2018), 3-р бүлэг, Programming Project 2\\
@@ -72,7 +75,7 @@
 \textbf{Repository:} & \url{https://github.com/Tugu8/os-bd1-IV-2-2-}\\
 \textbf{Багш:} & Доктор (Ph.D) Г. Ганбат\\
 \end{tabular}
-\vspace{1.2cm}
+\vspace{0.8cm}
 
 \begin{tabular}{l p{12cm}}
 \toprule
@@ -80,15 +83,15 @@
 \midrule
 B242270047 & Kernel module (\code{src/kmod/})\\
 B190910014 & Interactive UI (\code{src/ui/})\\
-B210930842 & Бэлтгэл module, build орчин, Operational manual (\code{src/prereq/})\\
+B210930842 & Бэлтгэл module, Operational manual --- \textbf{гүйцэтгээгүй} (B190910014 хийсэн, §5.5)\\
 B231910003 & Туршилт (\code{tests/})\\
-B232270108 & Үндсэн тайлан (\code{report/})\\
+B232270108 & Үндсэн тайлан --- \textbf{оролцоогүй} (B190910014, B242270047 хийсэн, §5.5)\\
 B241940099 & Хэрэглэгчийн manual, README Quick Start, БД1 пост, шүүмж (\code{review/})\\
 \bottomrule
 \end{tabular}
 
 \smallskip
-{\small Тайланг бэлтгэсэн: B190910014 · хянаж баталгаажуулах: B232270108}
+{\small Тайланг бэлтгэсэн: B190910014, B242270047}
 \vfill
 {\large 2026 оны 10-р сар\par}
 \end{titlepage}
@@ -142,6 +145,27 @@ command = [bash] pid = [1395] state = [1]
 \end{lstlisting}
 
 \textbf{Нэмэлт шаардлага (BD1 заавар).} Номын үндсэн функцийг бүрэн хэрэгжүүлэх; оролтыг өөрчилж дахин турших; буруу, захын оролтыг шалгах; оноосон дүрслэл бүхий UI-ийг бодит ажиллагаатай холбох; Manual-ийн дагуу өөр компьютерт дахин ажиллуулах боломж бүрдүүлэх.
+
+\begin{table}[h!]
+\centering
+\caption{Шаардлага ба хэрэгжүүлсэн газар}
+\begin{tabular}{p{5.6cm} p{7.6cm} l}
+\toprule
+\textbf{Шаардлага} & \textbf{Хэрэгжилт} & \textbf{Төлөв}\\
+\midrule
+\code{/proc/pid} үүсгэх & \code{proc_create("pid", 0666, ...)}, \code{struct proc_ops} (\code{src/kmod/pid.c}) & Хэрэгжсэн\\
+PID бичих (write) & \code{kmalloc} + \code{copy_from_user} + \code{kstrtol}, 1..\code{PID_MAX_LIMIT} шалгалт & Хэрэгжсэн\\
+command, pid, state хэвлэх (read) & \code{pid_task(find_vpid())}, \code{seq_printf}, номын яг формат & Хэрэгжсэн\\
+Хүчингүй PID → 0 байт & \code{task == NULL} үед юу ч хэвлэхгүй & Хэрэгжсэн\\
+Parent, child (task hierarchy) & \code{real_parent}, \code{children} жагсаалт (\code{parent =}, \code{child =} мөр) & Нэмэлт\\
+Өөр PID, тохиргоогоор турших & UI-ийн PID талбар, гүн 0–4, demo мод, автомат шинэчлэлт & Хэрэгжсэн\\
+Буруу, захын оролт & \code{-EINVAL}/\code{-ERANGE}; UI улаан мэдэгдэл; \code{tests/boundary} (7) & Хэрэгжсэн\\
+Task hierarchy UI & \code{src/ui/}: SVG мод, төлөвийн өнгө, түүх, reset & Хэрэгжсэн\\
+Manual, дахин ажиллуулах & \code{docs/Manual.md} §A/§B, README Quick Start & Хэрэгжсэн\\
+\bottomrule
+\end{tabular}
+\end{table}
+\FloatBarrier
 
 %================================================================ 3
 \section{Онолын үндэс}
@@ -248,10 +272,10 @@ if (copy_from_user(k_mem, usr_buf, count)) {
         return -EFAULT;
 }
 k_mem[count] = '\0';
-ret = kstrtol(k_mem, 10, &val);                    /* '\n'-ийг зөвшөөрнө */
+ret = kstrtol(k_mem, 10, &val);                    (*@\cyrcmt{/* '\textbackslash n'-ийг зөвшөөрнө */}@*)
 kfree(k_mem);
 if (ret)
-        return ret;                                /* abc, 12abc -> -EINVAL; хэт том -> -ERANGE */
+        return ret;                                (*@\cyrcmt{/* abc -> EINVAL, хэт том -> ERANGE */}@*)
 if (val <= 0 || val > PID_MAX_LIMIT)
         return -EINVAL;
 l_pid = val;
@@ -264,7 +288,7 @@ return count;
 rcu_read_lock();
 task = pid_task(find_vpid(l_pid), PIDTYPE_PID);
 if (!task)
-        goto out;                                  /* байхгүй PID -> 0 байт */
+        goto out;                                  (*@\cyrcmt{/* байхгүй PID -> 0 байт */}@*)
 seq_printf(m, "command = [%s] pid = [%d] state = [%u]\n",
            task->comm, task_pid_vnr(task), READ_ONCE(task->__state));
 parent = rcu_dereference(task->real_parent);
@@ -299,6 +323,37 @@ rcu_read_unlock();
 
 \textbf{Туршилтын мод.} \code{demo_tree.py} нь тусдаа процессын бүлэгт \code{demo_root} → sleeper (2 ач), busy, stopped (T), threads (5 урсгал), zombie (Z) үүсгэнэ. UI-аас fork, zombie, \code{wait()}, STOP/CONT/TERM — зөвхөн энэ бүлэгт (бусад PID → 403).
 
+\subsection{GitHub дээрх ажиллагаа}
+Код \url{https://github.com/Tugu8/os-bd1-IV-2-2-} repository-д байрлана. \code{main} branch руу шууд push хийгээгүй: гишүүн бүр өөрийн fork эсвэл branch дээр ажиллаж, Pull Request (PR) нээж merge хийсэн (\code{CONTRIBUTING.md}). Commit мессежийг \code{kmod:}, \code{ui:}, \code{docs:}, \code{tests:}, \code{report:} гэх мэт угтвартай бичсэн.
+
+\begin{center}
+\begin{tabular}{c l l p{8.4cm}}
+\toprule
+\textbf{PR} & \textbf{Гишүүн} & \textbf{Огноо} & \textbf{Агуулга}\\
+\midrule
+\#1 & B242270047 & 10-22 & \code{/proc/pid} kernel module (\code{src/kmod/})\\
+\#2 & B190910014 & 10-24 & Task hierarchy UI (\code{src/ui/})\\
+\#3 & B190910014 & 10-24 & README Quick Start, CONTRIBUTING, CHANGELOG\\
+\#4 & B190910014 & 10-24 & kmod: PID-ийг бичигчийн PID namespace-ээр хэвлэх\\
+\#5 & B241940099 & 10-25 & Хэрэглэгчийн manual, шүүмжийн төлөвлөгөө\\
+\#6 & B241940099 & 10-26 & Manual: дэмжих орчин, AI тэмдэглэл\\
+\#7 & B242270047 & 10-26 & Manual: дэмжих орчны засвар\\
+\#8 & B242270047 & 10-26 & kmod-ийн хэрэгжилтийн тэмдэглэл (\code{REPORT_KMOD.md})\\
+\#9 & B242270047 & 10-26 & Bare-metal тестийн үр дүн, UI screenshot\\
+\#10 & B242270047 & 10-26 & kmod: төлөвийн тайлбарын засвар\\
+\#11 & B231910003 & 10-26 & \code{tests/basic}, \code{tests/boundary} скриптүүд\\
+\#12 & B190910014 & 10-27 & \code{src/prereq/}, Operational manual (§A)\\
+\#13 & B190910014 & 10-27 & Энэ тайлан ба Manual PDF\\
+\#14 & B242270047 & 10-27 & Тайлангийн засвар (зураг, шаардлагын хүснэгт, GitHub хэсэг), орчны засвар\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+B210930842 нь өөрийн fork дээр \code{prereq-manual.docx} файл байршуулсан боловч PR нээгээгүй тул \code{main}-д ороогүй. B232270108-ийн commit, PR, comment repository-д байхгүй.
+
+\subsection{Бэлэн код, сан, AI-ийн хэрэглээ}
+Kernel module нь сурах бичгийн Programming Project-ийн skeleton (\code{proc_ops}, \code{kmalloc}, \code{copy_from_user}, \code{kstrtol}, \code{pid_task}, \code{find_vpid}) дээр суурилсан. UI-ийн код, Manual, тайлангийн ноорогийг боловсруулахад AI туслах (Claude, Anthropic) ашигласан; бүх кодыг гишүүд уншиж, ажиллуулж, туршиж шалгасан. Гадны программын сан ашиглаагүй (зөвхөн Linux kernel API, Python 3 стандарт сан). Дэлгэрэнгүйг README-ийн ``Бэлэн код, сан, AI ашиглалт'' хэсгээс харна уу.
+
 %================================================================ 6
 \section{Туршилт ба UI дүрслэл}
 
@@ -317,6 +372,13 @@ Module дуудлагын лог & write \code{/proc/pid} → read \code{/proc/p
 \bottomrule
 \end{tabular}
 \end{center}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.92\linewidth,height=0.45\textheight,keepaspectratio]{demo_tree.png}
+\caption{UI-ийн бүтэц: зүүн талд PID сонголт, туршилт удирдах, процессын жагсаалт; баруун дээд хэсэгт номын интерфейс (\code{echo}/\code{cat}) ба task мэдээлэл; доор нь PID 1-ээс \code{demo_root} хүртэлх өвөг эцгийн гинж ба хүүхдүүд (гүн 1), төлөвийн өнгөний legend. WSL2 хөгжүүлэлтийн орчин.}
+\end{figure}
+\FloatBarrier
 
 %================================================================ 7
 \section{Туршилтын арга}
@@ -381,7 +443,7 @@ command = [bash] pid = [5090] state = [1]
 parent = [bash] ppid = [5084]
 child = [sleep] pid = [5106] state = [8193]
 child = [cat] pid = [5108] state = [0]
-$ echo 1 > /proc/pid; cat /proc/pid | head -3        # нийт 33 child
+$ echo 1 > /proc/pid; cat /proc/pid | head -3        (*@{\ttfamily\small \# нийт 33 child}@*)
 command = [systemd] pid = [1] state = [1]
 parent = [swapper/0] ppid = [0]
 ...
@@ -404,6 +466,13 @@ bash: echo: write error: Invalid argument
 \end{center}
 Нэг module асуулга: write \code{/proc/pid} 205 µs, read 850 байт 72 µs. Хугацааны ихэнх нь procfs-оос өвөг эцэг, uid уншихад зарцуулагдана.
 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\linewidth,height=0.5\textheight,keepaspectratio]{step6_history_calls.png}
+\caption{Сценари дууссаны дараах Түүх (SIGSTOP → SIGCONT → SIGTERM → \code{wait()}) ба ``Module дуудлагын лог'': write \code{/proc/pid} 5 байт, read 46 байт, тус бүр хэдэн зуун µs. WSL2.}
+\end{figure}
+\FloatBarrier
+
 \subsection{Screenshot}
 \begin{figure}[h!]
 \centering
@@ -414,6 +483,11 @@ bash: echo: write error: Invalid argument
 \centering
 \includegraphics[width=\linewidth,height=0.4\textheight,keepaspectratio]{ui_baremetal_history.png}
 \caption{Bare-metal: сценарийн түүх — SIGSTOP, SIGCONT, SIGTERM → zombie, \code{wait()}.}
+\end{figure}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.9\linewidth,height=0.42\textheight,keepaspectratio]{step2_spawn.png}
+\caption{Тест 5: \code{demo_root} \code{fork()} хийж шинэ хүү \code{demo_new_1} үүсгэв — мод дээр ногоон хүрээтэй ``шинэ'' гэж тодорч, \code{demo_busy}-ийн төлөв S→R шараар тэмдэглэгдэв. WSL2.}
 \end{figure}
 \begin{figure}[h!]
 \centering
@@ -428,6 +502,7 @@ bash: echo: write error: Invalid argument
 
 \textbf{Үр дүнгийн тайлбар.} Номын жишээ болон бүх захын оролт хүлээгдсэн үр дүнтэй таарсан; kernel crash, санах ойн алдагдал гараагүй. Bare-metal ба WSL2 хоёр өөр kernel (7.0 ба 6.6) дээр ижил эх код хөрвүүлэгдэж ажилласан нь \code{proc_ops}, \code{__state} API-ийн сонголт зөв болохыг харуулна.
 
+\filbreak
 \textbf{Туршилтаар илэрсэн, зассан алдаа.}
 \begin{center}
 \begin{tabular}{p{6.6cm} p{8.8cm}}
@@ -469,8 +544,6 @@ UI-ийн гүн 0 ба 1 ижил мод & \code{level < depth} → \code{level
   \item Python 3 documentation — \code{http.server}, \code{threading}. \url{https://docs.python.org/3/}
 \end{enumerate}
 
-\textbf{Бэлэн код, AI ашиглалт.} Kernel module нь сурах бичгийн Programming Project-ийн skeleton дээр суурилсан. Код болон баримт бичгийг боловсруулахад AI туслах (Claude) ашигласан; бүх кодыг гишүүд уншиж, ажиллуулж, туршиж шалгасан. Гадны программын сан ашиглаагүй.
-
 %================================================================ Хавсралт
 \appendix
 \section*{Хавсралт A. Ажлын төлөвлөгөө}
@@ -481,7 +554,7 @@ UI-ийн гүн 0 ба 1 ижил мод & \code{level < depth} → \code{level
 Хуваарилалтын код & IV-2-2\\
 Төсөл & Linux Kernel Module for Task Information\\
 Repository & \url{https://github.com/Tugu8/os-bd1-IV-2-2-}\\
-Хэл/сан/орчин & C (Linux kernel module), Python 3 стандарт сан + HTML/CSS/JS; Ubuntu bare-metal\\
+Хэл/сан/орчин & C (Linux kernel module), Python 3 стандарт сан + HTML/CSS/JS; Ubuntu 24.04 bare-metal, WSL2 (хөгжүүлэлт)\\
 Үндсэн дүрслэл & Task hierarchy (parent – task – children мод)\\
 Шүүмжлэх баг & IV-2-5 (Sudoku Solution Validator)\\
 \bottomrule
@@ -492,12 +565,12 @@ Repository & \url{https://github.com/Tugu8/os-bd1-IV-2-2-}\\
 \toprule
 \textbf{Гишүүн} & \textbf{Хариуцах ажил} & \textbf{Commit/file}\\
 \midrule
-B242270047 & Үндсэн kernel module: write, read, parent/children өргөтгөл, \code{proc_ops}, \code{__state}; Release & \code{src/kmod/}\\
-B190910014 & Interactive UI: PID оруулах/сонгох, мод, төлөвийн өнгө, refresh/reset, алдааны мэдэгдэл & \code{src/ui/}\\
-B210930842 & 2-р бүлгийн бэлтгэл module, build орчин, Operational manual & \code{src/prereq/}, \code{docs/Manual.md} §A\\
-B231910003 & Туршилт: номын жишээ, boundary/error тест & \code{tests/}\\
-B232270108 & Үндсэн тайлан (Report.pdf) & \code{report/}\\
-B241940099 & Хэрэглэгчийн manual, README Quick Start, БД1 пост, IV-2-5-ийн шүүмж & \code{docs/Manual.md} §B, \code{review/}\\
+B242270047 & Үндсэн kernel module: write, read, parent/children өргөтгөл, \code{proc_ops}, \code{__state}; bare-metal тест; Release & \code{src/kmod/}, PR \#1, \#7--\#10\\
+B190910014 & Interactive UI: PID оруулах/сонгох, мод, төлөвийн өнгө, refresh/reset, алдааны мэдэгдэл & \code{src/ui/}, PR \#2--\#4\\
+B210930842 & 2-р бүлгийн бэлтгэл module, build орчин, Operational manual. \textbf{Гүйцэтгээгүй} --- B190910014 хийсэн & --- (\code{src/prereq/}: PR \#12)\\
+B231910003 & Туршилт: номын жишээ, boundary/error тест & \code{tests/}, PR \#11\\
+B232270108 & Үндсэн тайлан (Report.pdf). \textbf{Гүйцэтгээгүй} --- B190910014, B242270047 хийсэн & --- (\code{report/}: PR \#13)\\
+B241940099 & Хэрэглэгчийн manual, README Quick Start, БД1 пост, IV-2-5-ийн шүүмж & \code{docs/Manual.md} §B, \code{review/}, PR \#5, \#6\\
 \bottomrule
 \end{tabular}
 

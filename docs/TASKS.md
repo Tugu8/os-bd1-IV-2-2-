@@ -5,7 +5,7 @@
 | Хуваарилалтын код | IV-2-2 |
 | Төсөл | Linux Kernel Module for Task Information |
 | Repository | https://github.com/Tugu8/os-bd1-IV-2-2- |
-| Хэл/сан/орчин | C (Linux kernel module), UI: _сонгоно_; Ubuntu/Debian bare-metal |
+| Хэл/сан/орчин | C (Linux kernel module); UI: Python 3 стандарт сан (`http.server`) + HTML/CSS/JS; Ubuntu/Debian (bare-metal эсвэл VM) |
 | Үндсэн дүрслэл | Task hierarchy (parent – task – children мод) |
 | Шүүмжлэх баг | IV-2-5 (Sudoku Solution Validator) |
 
@@ -15,9 +15,9 @@
 |---|---|---|
 | B242270047 | **Үндсэн kernel module.** `/proc/pid`-ийн write (`kmalloc`, `copy_from_user`, `kstrtol`), read (`find_vpid`, `pid_task`, command/pid/state), алдаа шалгах (NULL PID → 0). Parent болон children жагсаалтыг гаргадаг өргөтгөл. Шинэ kernel-ийн API (`proc_ops`, `__state`). | `src/kmod/` |
 | B190910014 | **Interactive UI.** PID оруулах, сонгох; task hierarchy модыг зурах; state-ийг өнгөөр ялгах; refresh/reset хийх; алдааны мэдэгдэл харуулах. Kernel module-тай `/proc/pid`-ээр холбогдоно. | `src/ui/` |
-| B210930842 | **2-р бүлгийн бэлтгэл module ба build орчин.** Hello/jiffies маягийн `/proc` module, `Makefile`, суулгах заавар. Kernel version, dependency-г баримтжуулна. **Operational manual** бичнэ. | `src/prereq/`, `docs/Manual.md` (operational хэсэг) |
+| B210930842 | **2-р бүлгийн бэлтгэл module ба build орчин.** Hello/jiffies маягийн `/proc` module, `Makefile`, суулгах заавар. Kernel version, dependency-г баримтжуулна. **Operational manual** бичнэ. | `src/prereq/`, `docs/Manual.md` (operational хэсэг). **Гүйцэтгээгүй:** fork дээр docx байршуулсан, PR нээгээгүй. B190910014 хийсэн (PR #12) |
 | B231910003 | **Туршилт.** Номын жишээ (bash, init PID 1 гэх мэт) болон нэмэлт тестүүд. Boundary/error тест: байхгүй PID, сөрөг тоо, үсэг, хоосон оролт, маш том тоо, kernel thread. Тест бүрийн хүлээгдсэн ба бодит үр дүнг screenshot-той хадгална. | `tests/` |
-| B232270108 | **Үндсэн тайлан.** Онолын үндэс (PCB, `task_struct`, process state, `/proc`), системийн зохиомж (компонент ба өгөгдлийн урсгалын диаграм), үр дүн ба хэлэлцүүлгийг нэгтгэж **Report.pdf** гаргана. | `report/` |
+| B232270108 | **Үндсэн тайлан.** Онолын үндэс (PCB, `task_struct`, process state, `/proc`), системийн зохиомж (компонент ба өгөгдлийн урсгалын диаграм), үр дүн ба хэлэлцүүлгийг нэгтгэж **Report.pdf** гаргана. | `report/`. **Гүйцэтгээгүй:** repository-д commit, PR байхгүй. B190910014, B242270047 хийсэн (PR #13, #14) |
 | B241940099 | **Хэрэглэгчийн manual ба танилцуулга.** User manual (дүрслэлийн тэмдэг, өнгө, 2+ жишээ, түгээмэл алдаа), README Quick Start, MS Teams БД1 пост. **IV-2-5-ийн шүүмжийг** зохион байгуулна (бүх гишүүн оролцоно). | `docs/Manual.md` (хэрэглэгчийн хэсэг), `review/` |
 
 > Тайлангийн "Хэрэгжилт" хэсгийг kernel module болон UI хариуцсан гишүүд өөрсдөө бичиж өгнө.

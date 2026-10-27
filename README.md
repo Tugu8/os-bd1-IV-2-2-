@@ -52,9 +52,9 @@ UI нь зөвхөн Python 3 стандарт сан, браузер ашигл
 
 | | Хувилбар |
 |---|---|
-| OS | Ubuntu 22.04 LTS (туршсан: WSL2 kernel `6.6.87.2-microsoft-standard-WSL2`) |
+| OS | Ubuntu 22.04 / 24.04 LTS, Debian — bare-metal эсвэл VM (туршсан: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic`; хөгжүүлэлт: WSL2 `6.6.87.2`) |
 | Kernel API | `proc_ops` (≥ 5.6), `task_struct->__state` (≥ 5.14), `seq_file` |
-| Хөрвүүлэгч | gcc 11.4, GNU make |
+| Хөрвүүлэгч | gcc 13.3 (bare-metal), gcc 11.4 (WSL2), GNU make |
 | UI | Python ≥ 3.8, орчин үеийн браузер (Edge, Chrome, Firefox) |
 | Тест | bash, Python `unittest`; Node ≥ 18 (UI-ийн модны тест, заавал биш) |
 
@@ -62,13 +62,13 @@ UI нь зөвхөн Python 3 стандарт сан, браузер ашигл
 
 | Хавтас | Агуулга | Хариуцагч |
 |---|---|---|
-| `src/prereq/` | 2-р бүлгийн бэлтгэл kernel module (`/proc` entry үүсгэх), build орчин | B210930842 |
+| `src/prereq/` | 2-р бүлгийн бэлтгэл kernel module (`/proc` entry үүсгэх), build орчин | B210930842 (гүйцэтгэсэн: B190910014) |
 | `src/kmod/` | Үндсэн kernel module (`pid.c`, `Makefile`) | B242270047 |
 | `src/ui/` | Task hierarchy дүрслэлтэй interactive UI | B190910014 |
 | `tests/basic/` | Номын жишээ болон үндсэн тестүүд | B231910003 |
 | `tests/boundary/` | Захын болон буруу оролтын тестүүд | B231910003 |
 | `docs/` | Manual ([Manual.md](docs/Manual.md), [IV-2-2_Manual.pdf](docs/IV-2-2_Manual.pdf)), зургууд, [TASKS.md](docs/TASKS.md) | B241940099, B210930842 |
-| `report/` | Үндсэн тайлан [IV-2-2_BD1_Report.pdf](report/IV-2-2_BD1_Report.pdf) (+ `.tex`, `build_pdfs.sh`) | B232270108 |
+| `report/` | Үндсэн тайлан [IV-2-2_BD1_Report.pdf](report/IV-2-2_BD1_Report.pdf) (+ `.tex`, `build_pdfs.sh`) | B232270108 (гүйцэтгэсэн: B190910014, B242270047) |
 | `review/` | IV-2-5 багийн ажилд бичих шүүмж (Review.pdf) | B241940099 (бүгд) |
 
 ## Тест

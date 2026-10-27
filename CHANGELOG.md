@@ -14,10 +14,14 @@
 - **ui** (B190910014, PR #2): Task hierarchy вэб UI (`src/ui/`): PID сонгох, SVG мод, төлөвийн өнгө, өөрчлөлтийн тодруулга, түүх, туршилтын процессын мод (fork/STOP/CONT/TERM/wait), газар дээр нь нээх, JSON/SVG/PNG экспорт; `contract_check.py`; 24 API + 12 Node тест.
 - **kmod** (B242270047): bare-metal туршилтын үр дүн (`tests/kmod_baremetal.txt`), тайлангийн хэсэг (`src/kmod/REPORT_KMOD.md`), UI-ийн bare-metal screenshot.
 - **tests** (B231910003, PR #11): `tests/basic/test_basic.sh` (5), `tests/boundary/test_boundary.sh` (7).
-- **prereq** (бэлтгэсэн B190910014, хариуцагч B210930842): 2-р бүлгийн бэлтгэл module-ууд (`simple`, `/proc/hello`, `/proc/jiffies`, `/proc/seconds`), `sudo make test` (9), Ubuntu/WSL2 build орчны скрипт; `docs/Manual.md` §A Operational.
-- **report** (бэлтгэсэн B190910014, хариуцагч B232270108): `report/IV-2-2_BD1_Report.pdf` (13 х.) ба `docs/IV-2-2_Manual.pdf` (14 х.); `report/build_pdfs.sh` дахин үүсгэнэ.
+- **prereq** (бэлтгэсэн B190910014, хариуцагч B210930842 — гүйцэтгээгүй): 2-р бүлгийн бэлтгэл module-ууд (`simple`, `/proc/hello`, `/proc/jiffies`, `/proc/seconds`), `sudo make test` (9), Ubuntu/WSL2 build орчны скрипт; `docs/Manual.md` §A Operational.
+- **report** (бэлтгэсэн B190910014, хариуцагч B232270108 — гүйцэтгээгүй): `report/IV-2-2_BD1_Report.pdf` (13 х.) ба `docs/IV-2-2_Manual.pdf` (14 х.); `report/build_pdfs.sh` дахин үүсгэнэ.
 
 ### Засвар
+- **docs** (B242270047, PR #14): README, Manual, prereq README-ийн дэмжих орчныг "bare-metal эсвэл VM" болгосон (VM-ийг хориглосон нь лабын дүрэм, БД-ийнх биш); туршсан орчныг Ubuntu 24.04 bare-metal болгож шинэчилсэн. TASKS.md-ийн UI-ийн хэлийг нөхсөн.
+- **report** (B242270047, PR #14): нүүр болон Хавсралт A-д гишүүдийн бодит гүйцэтгэлийг тэмдэглэсэн (B210930842, B232270108 — гүйцэтгээгүй); §5.5 "GitHub дээрх ажиллагаа" (PR #1–#14), §5.6 AI ашиглалт, §2 шаардлагын хангалтын хүснэгт нэмсэн (OS_BD1_Guide §2, §6). Нүүрэнд ШУТИС лого; зураг 4 → 8 (UI бүтэц, шинэ хүү процесс, module дуудлагын лог).
+- **docs** (B242270047, PR #14): Manual-д 3 зураг нэмсэн (bare-metal дэлгэцийн бүтэц, bare-metal түүх, газар дээр нь нээх), нүүрэнд лого. `md2tex.py`: код блокийг `listings` → `fvextra` (XeLaTeX дээр кирилл үсгийн дараалал эвдэрч "БД1-ийн" → "БДийн1-" болдог байсан); тайлангийн кирилл тайлбартай кодыг мөн зассан.
+- **review** (B242270047, PR #14): Review PDF-ийн бүтэц, рубрик, priority, Reply-ийн загварыг албан ёсны Peer Review Guide-тэй тааруулсан; файлын нэр `IV-2-2_Review_IV-2-5.pdf`.
 - **docs**: шүүмжлэх багийн код II-4-5 → **IV-2-5** (Topic and Peer Review Allocation хүснэгтийн дагуу).
 - **kmod** (B190910014, PR #4): `task->pid` → `task_pid_vnr()` — PID namespace (WSL2, контейнер)-д бичсэн PID-тэй ижил дугаар хэвлэнэ.
 

@@ -15,7 +15,7 @@
 
 | | Шаардлага | Туршсан |
 |---|---|---|
-| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12 — **bare-metal** (хичээлийн дүрэм) | Ubuntu 24.04.5 LTS bare-metal (`systemd-detect-virt` = `none`) |
+| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12 — bare-metal эсвэл VM (VirtualBox, VMware). WSL2-д `linux-headers` багц байхгүй (A8) | Ubuntu 24.04.5 LTS bare-metal (`systemd-detect-virt` = `none`) |
 | Kernel | ≥ 5.14 (`struct proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14) | `7.0.0-34-generic`; хөгжүүлэлтэд `6.6.87.2-microsoft-standard-WSL2` |
 | Compiler | gcc + GNU make (`build-essential`); kernel-ийг хөрвүүлсэн gcc-тэй ижил хувилбар | gcc 13.3.0 (bare-metal), gcc 11.4 (WSL2) |
 | Kernel headers | `linux-headers-$(uname -r)` | |
@@ -145,12 +145,12 @@ UI-д зөвхөн Python 3 болон браузер хэрэгтэй. Нэмэ
 
 | | Шаардлага |
 |---|---|
-| OS | Ubuntu 22.04 LTS / Debian (bare-metal; VM зөвхөн macOS дээр UTM-ээр) |
+| OS | Ubuntu 22.04 / 24.04 LTS, Debian (bare-metal эсвэл VM) |
 | Kernel | ≥ 5.14 (`proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14) |
 | Python | ≥ 3.8 (зөвхөн стандарт сан) |
 | Браузер | Edge, Chrome, Firefox (орчин үеийн хувилбар) |
 
-Туршсан орчин: Ubuntu 22.04 дээрх WSL2, kernel `6.6.87.2-microsoft-standard-WSL2`, gcc 11.4. Module-ийг build хийхэд `build-essential`, `linux-headers-$(uname -r)` хэрэгтэй. Node ≥ 18 нь зөвхөн UI-ийн модны тестэд хэрэгтэй, заавал биш. Дэлгэрэнгүйг §A-аас харна уу.
+Туршсан орчин: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic`, gcc 13.3 (хөгжүүлэлтэд WSL2 `6.6.87.2`, gcc 11.4). Module-ийг build хийхэд `build-essential`, `linux-headers-$(uname -r)` хэрэгтэй. Node ≥ 18 нь зөвхөн UI-ийн модны тестэд хэрэгтэй, заавал биш. Дэлгэрэнгүйг §A-аас харна уу.
 
 ### B2. Эхлүүлэх
 
@@ -183,6 +183,10 @@ python3 src/ui/server.py             # UI сервер → http://localhost:8000
 | **Шатлал** | голд | Task hierarchy мод. Энэ бол гол дүрслэл |
 | **Түүх** | доод | Шинэчлэлт бүрийн snapshot. ◀ ▶-ээр эргэн харна, `⤓ JSON / SVG / PNG` татна |
 | **Module дуудлагын лог**, **Module-ийн түүхий гаралт** | хамгийн доод (нээх мөр) | UI нь kernel module-ийг бодитоор дууддагийн нотолгоо |
+
+![Дэлгэцийн бүтэц](images/ui_baremetal_tree.png)
+
+*Зураг 1. Bare-metal Ubuntu 24.04 (kernel 7.0.0-34) дээр ажиллаж буй UI: зүүн талд Task сонгох, Туршилт удирдах, Процессууд; голд Номын интерфейс ба Шатлал; баруун дээд буланд Task мэдээлэл ба төлөвийн шошго.*
 
 ### B4. Дүрслэлийн тэмдэг, өнгө
 
@@ -218,7 +222,7 @@ python3 src/ui/server.py             # UI сервер → http://localhost:8000
 
 ![Demo мод](../src/ui/screenshots/demo_tree.png)
 
-*Зураг 1. Demo мод. Дээр нь өвөг эцэг (systemd → … → python3), голд сонгосон `demo_root`, доор нь хүүхдүүд (S, S, T, S, Z).*
+*Зураг 2. Demo мод. Дээр нь өвөг эцэг (systemd → … → python3), голд сонгосон `demo_root`, доор нь хүүхдүүд (S, S, T, S, Z).*
 
 #### B4.3 Өөрчлөлтийн тодруулга
 
@@ -300,7 +304,7 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 ![fork](../src/ui/screenshots/step2_spawn.png)
 
-*Зураг 2. `demo_new_1` шинээр үүссэн (ногоон), `demo_busy` S→R болсон (шар).*
+*Зураг 3. `demo_new_1` шинээр үүссэн (ногоон), `demo_busy` S→R болсон (шар).*
 
 #### Жишээ 3 — Zombie процесс үүсгэж, арилгах
 
@@ -312,7 +316,7 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 ![zombie](../src/ui/screenshots/step5_zombie.png)
 
-*Зураг 3. `demo_new_1` S→Z болсон: эцэг нь `wait()` хийгээгүй.*
+*Зураг 4. `demo_new_1` S→Z болсон: эцэг нь `wait()` хийгээгүй.*
 
 #### Жишээ 4 — Процессын амьдралын мөчлөгийг автоматаар үзэх
 
@@ -322,7 +326,11 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 ![Түүх](../src/ui/screenshots/step6_history_calls.png)
 
-*Зураг 4. Түүх, тайлбар, Module дуудлагын лог: `write /proc/pid` → `read /proc/pid` → `read /proc/pid_tree`.*
+*Зураг 5. Түүх, тайлбар, Module дуудлагын лог: `write /proc/pid` → `read /proc/pid` → `read /proc/pid_tree`.*
+
+![Bare-metal түүх](images/ui_baremetal_history.png)
+
+*Зураг 6. Ижил сценари bare-metal дээр: Түүхэнд SIGSTOP → SIGCONT → SIGTERM (zombie) → `wait()` алхмууд дараалан бичигдсэн.*
 
 #### Жишээ 5 — Газар дээр нь нээх (⊕ / ⊖)
 
@@ -332,6 +340,10 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 4. **⊖** дарвал буцаж хаагдана.
 
 Zombie зангилаа дээр ⊕ гарахгүй, учир нь zombie-д хүүхэд байхгүй.
+
+![Газар дээр нь нээх](../src/ui/screenshots/expand_in_place.png)
+
+*Зураг 7. `demo_sleeper`-ийг ⊕-оор нээсэн байдал: сонголт `demo_root` хэвээр, доор нь `demo_leaf_1`, `demo_leaf_2` гарсан.*
 
 ### B7. Түгээмэл алдаа ба шийдэл
 
