@@ -53,7 +53,7 @@ simple: Removing Kernel Module
 
 | | Хувилбар |
 |---|---|
-| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12 — bare-metal (хичээлийн дүрэм) |
+| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12 — bare-metal эсвэл VM |
 | Kernel | ≥ 5.14 (`proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14); туршсан: `7.0.0-34-generic` (Ubuntu 24.04, bare-metal), `6.6.87.2-microsoft-standard-WSL2` |
 | Багц | `build-essential` (gcc, make), `linux-headers-$(uname -r)`, `python3` (UI) |
 | Эрх | `insmod` / `rmmod` — `sudo` |
