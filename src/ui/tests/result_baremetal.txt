@@ -1,0 +1,27 @@
+demo tree ready — Ctrl+C to stop
+.....................s...
+----------------------------------------------------------------------
+Ran 25 tests in 5.606s
+
+OK (skipped=1)
+✔ Номын формат: command = [..] pid = [..] state = [..]                             command = [python3] pid = [8453] state = [0]
+✔ Нэмэлт мөр бүр parent = [..] ppid = [..] / child = [..] pid = [..] state = [..]  1 мөр — UI module-ээс хүүхдүүдийг уншина
+✔ pid = бичсэн PID (namespace: task_pid_vnr)                                       8453
+✔ command = /proc/self/comm                                                        [python3]
+✔ Дахин нээж уншихад ижил мөр (төлөв 'дуусаагүй')                                  
+✔ parent ppid = getppid() (namespace)                                              5268 vs 5268
+✔ child жагсаалтад хүү sleep (8455)                                                [8455]
+✔ 8 байтаар хэсэгчлэн уншихад бүтэн мөр (count, *pos-ыг хүндэтгэнэ)                'command = [python3] pid = [8453] state = [0]\nparen'
+✔ PID 1 → init/systemd                                                             [systemd]
+✔ state: унтаж буй (S) → TASK_INTERRUPTIBLE (1) бит                                8193
+✔ state: зогсоосон (T) → __TASK_STOPPED (4) бит                                    260
+✔ Байхгүй PID (4194303) → 0 байт                                                   ''
+✔ Буруу оролт 'abc' → write алдаа                                                  EINVAL
+✔ Буруу оролт '-5' → write алдаа                                                   EINVAL
+✔ Буруу оролт '12abc' → write алдаа                                                EINVAL
+✔ Буруу оролт '99999999999999999999' → write алдаа                                 ERANGE
+✔ Буруу оролт ' ' → write алдаа                                                    EINVAL
+⚠ /proc/pid_tree байгаа эсэх                                                       алга — UI 'book' горимоор (хүүхдүүд /proc/pid-ийн child мөрөөс эсвэл procfs-оос) ажиллана
+
+17 ✔   1 ⚠   0 ✖   — UI ажиллана (⚠-г харна уу)
+UI-ийн сонгох горим: book

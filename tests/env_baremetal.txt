@@ -1,0 +1,4 @@
+date: 2026-10-27 17:17:28 +08
+uname: Linux tuguldur-Inspiron-15-3520 7.0.0-34-generic #34~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 15:38:29 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+gcc: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0

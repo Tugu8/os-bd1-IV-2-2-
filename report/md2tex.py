@@ -26,6 +26,8 @@ def inline(t):
     # **тод** нь `код`-ийг агуулж болох тул тэмдэглэгээг эхэлж \x02 болгоно
     parts = re.split(r"(`[^`]+`)", t)
     parts = [x if x.startswith("`") else x.replace("**", "\x02") for x in parts]
+    # *налуу* мөн `код` агуулж болно — ганц *-ийг \x03 болгоно
+    parts = [x if x.startswith("`") else re.sub(r"(?<![\w*])\*(?=\S)|(?<=\S)\*(?![\w*])", "\x03", x) for x in parts]
     out = []
     for p in parts:
         if p.startswith("`") and p.endswith("`") and len(p) > 1:
@@ -42,7 +44,6 @@ def inline(t):
             return f"\x01{len(links) - 1}\x01"
         p = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", keep, p)
         p = esc(p)
-        p = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"\\emph{\1}", p)
         p = re.sub(r"\x00K(.*?)\x00", r"\\kbd{\1}", p)
 
         def link(m):
@@ -53,7 +54,8 @@ def inline(t):
             return esc(text)
         p = re.sub(r"\x01(\d+)\x01", link, p)
         out.append(p)
-    return re.sub("\x02(.*?)\x02", r"\\textbf{\1}", "".join(out), flags=re.S).replace("\x02", "")
+    t = re.sub("\x02(.*?)\x02", r"\\textbf{\1}", "".join(out), flags=re.S).replace("\x02", "")
+    return re.sub("\x03(.*?)\x03", r"\\emph{\1}", t, flags=re.S).replace("\x03", "*")
 
 
 def table(rows):

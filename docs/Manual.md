@@ -103,12 +103,12 @@ python3 src/ui/contract_check.py                 # module ↔ UI интерфе�
 
 ### A7. Бодит үр дүн
 
-| Тест | Ubuntu 24.04 bare-metal (`tests/kmod_baremetal.txt`) | WSL2 6.6.87.2 (2026-10-26) |
+| Тест | Ubuntu 24.04 bare-metal (2026-10-27, `*/result_baremetal.txt`) | WSL2 6.6.87.2 (2026-10-26) |
 |---|---|---|
-| `tests/basic/test_basic.sh` | — (гараар ижил тохиолдлууд: бүгд ✔) | 4 PASS, 0 FAIL, 1 SKIP (тест 5 — доорхыг үз) |
-| `tests/boundary/test_boundary.sh` | — (гараар: бүгд ✔) | 7 PASS, 0 FAIL |
-| `make -C src/prereq test` | | 9 PASS, 0 FAIL |
-| `src/ui/tests/test_api.py` | | 24 тест OK (1 алгассан — `/proc/pid_tree`-тэй module шаардлагатай) |
+| `tests/basic/test_basic.sh` | 5 PASS, 0 FAIL (тест 5 kernel thread PID 2 — PASS) | 4 PASS, 0 FAIL, 1 SKIP (тест 5 — доорхыг үз) |
+| `tests/boundary/test_boundary.sh` | 7 PASS, 0 FAIL | 7 PASS, 0 FAIL |
+| `make -C src/prereq test` | 9 PASS, 0 FAIL | 9 PASS, 0 FAIL |
+| `src/ui/tests/test_api.py` | 24 тест OK (1 алгассан — `/proc/pid_tree`-тэй module шаардлагатай) | 24 тест OK (1 алгассан — `/proc/pid_tree`-тэй module шаардлагатай) |
 | `src/ui/contract_check.py` | 17 ✔, 1 ⚠, 0 ✖ | 17 ✔, 1 ⚠, 0 ✖ |
 
 ⚠ = `/proc/pid_tree` байхгүй — UI `book` горимоор (хүүхдүүдийг `/proc/pid`-ийн `child` мөрөөс) ажиллана, алдаа биш.
@@ -293,6 +293,10 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 **UI дээр:** **PID 1** товчийг дарна. "Номын интерфейс" картанд дээрх `echo`, `cat` ба гаралт нь яг ижил харагдана. Шатлалд `systemd` голд, хүүхдүүд нь доор зурагдана.
 
+![Терминал](images/term_book_example.png)
+
+*Зураг 3. Bare-metal терминал: `echo $$ > /proc/pid` — bash, эцэг `gnome-terminal-`, хүү `cat`; `echo 1 > /proc/pid` — systemd, эцэг `swapper/0`, эхний хүүхдүүд.*
+
 #### Жишээ 2 — Шинэ процесс мод дээр гарах (TASKS.md-ийн тест 5)
 
 1. **Demo мод үүсгэх** товчийг дарна. Мод `demo_root` дор 5 хүүхэдтэй гарна (зураг 1).
@@ -304,7 +308,7 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 ![fork](../src/ui/screenshots/step2_spawn.png)
 
-*Зураг 3. `demo_new_1` шинээр үүссэн (ногоон), `demo_busy` S→R болсон (шар).*
+*Зураг 4. `demo_new_1` шинээр үүссэн (ногоон), `demo_busy` S→R болсон (шар).*
 
 #### Жишээ 3 — Zombie процесс үүсгэж, арилгах
 
@@ -316,7 +320,7 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 ![zombie](../src/ui/screenshots/step5_zombie.png)
 
-*Зураг 4. `demo_new_1` S→Z болсон: эцэг нь `wait()` хийгээгүй.*
+*Зураг 5. `demo_new_1` S→Z болсон: эцэг нь `wait()` хийгээгүй.*
 
 #### Жишээ 4 — Процессын амьдралын мөчлөгийг автоматаар үзэх
 
@@ -326,11 +330,11 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 ![Түүх](../src/ui/screenshots/step6_history_calls.png)
 
-*Зураг 5. Түүх, тайлбар, Module дуудлагын лог: `write /proc/pid` → `read /proc/pid` → `read /proc/pid_tree`.*
+*Зураг 6. Түүх, тайлбар, Module дуудлагын лог: `write /proc/pid` → `read /proc/pid` → `read /proc/pid_tree`.*
 
 ![Bare-metal түүх](images/ui_baremetal_history.png)
 
-*Зураг 6. Ижил сценари bare-metal дээр: Түүхэнд SIGSTOP → SIGCONT → SIGTERM (zombie) → `wait()` алхмууд дараалан бичигдсэн.*
+*Зураг 7. Ижил сценари bare-metal дээр: Түүхэнд SIGSTOP → SIGCONT → SIGTERM (zombie) → `wait()` алхмууд дараалан бичигдсэн.*
 
 #### Жишээ 5 — Газар дээр нь нээх (⊕ / ⊖)
 
@@ -343,7 +347,7 @@ Zombie зангилаа дээр ⊕ гарахгүй, учир нь zombie-д �
 
 ![Газар дээр нь нээх](../src/ui/screenshots/expand_in_place.png)
 
-*Зураг 7. `demo_sleeper`-ийг ⊕-оор нээсэн байдал: сонголт `demo_root` хэвээр, доор нь `demo_leaf_1`, `demo_leaf_2` гарсан.*
+*Зураг 8. `demo_sleeper`-ийг ⊕-оор нээсэн байдал: сонголт `demo_root` хэвээр, доор нь `demo_leaf_1`, `demo_leaf_2` гарсан.*
 
 ### B7. Түгээмэл алдаа ба шийдэл
 
@@ -363,6 +367,10 @@ Zombie зангилаа дээр ⊕ гарахгүй, учир нь zombie-д �
 | Мод ихээр жижгэрсэн, хэвтээ гүйлгэх мөр гарсан | Хэт олон хүүхэдтэй процесс (жнь PID 1) | Гүнийг багасгана, "Өвөг эцгийг товчлох"-ыг асаана, эсвэл шүүлтүүрээр хайна |
 | Төлөв шар (`module: зөвхөн /proc/pid`) | Module-д `/proc/pid_tree` байхгүй | Алдаа биш. UI ажиллана (§B4.4) |
 | Хоёр терминалаас зэрэг `echo N > /proc/pid` хийхэд өөр PID-ийн мэдээлэл гарлаа | Module нэг **глобал** PID хадгалдаг | UI-ийн сервер үүнийг mutex-ээр хамгаалдаг. Гараар хоёр терминалд зэрэг бүү ажилла |
+
+![Буруу оролт](images/ui_invalid_input.png)
+
+*Зураг 9. PID талбарт `abc` бичээд **Харах** дарахад гарах улаан banner: "Буруу оролт 'abc': эерэг бүхэл тоо оруулна уу" (bare-metal).*
 
 ### B8. Хязгаарлалт
 
