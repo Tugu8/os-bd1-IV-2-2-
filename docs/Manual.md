@@ -9,16 +9,124 @@
 
 ## §A. Operational хэсэг (B210930842)
 
-<!-- B210930842: kernel хувилбар, linux-headers, make/insmod/rmmod, WSL2-ийн тусгай заавар, dependency-г энд бичнэ. -->
+Өөр компьютер дээр repository-г татаж, build хийж, ажиллуулж, тестлэх заавар (OS_BD1_Guide §8.2). Бэлтгэсэн: B190910014 (хариуцагч B210930842 хянаж баталгаажуулна).
 
-Хамгийн богино заавар (дэлгэрэнгүйг README-ийн Quick Start-аас харна уу):
+### A1. Дэмжих орчин
+
+| | Шаардлага | Туршсан |
+|---|---|---|
+| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12 — **bare-metal** (хичээлийн дүрэм) | Ubuntu 24.04.5 LTS bare-metal (`systemd-detect-virt` = `none`) |
+| Kernel | ≥ 5.14 (`struct proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14) | `7.0.0-34-generic`; хөгжүүлэлтэд `6.6.87.2-microsoft-standard-WSL2` |
+| Compiler | gcc + GNU make (`build-essential`); kernel-ийг хөрвүүлсэн gcc-тэй ижил хувилбар | gcc 13.3.0 (bare-metal), gcc 11.4 (WSL2) |
+| Kernel headers | `linux-headers-$(uname -r)` | |
+| UI | Python ≥ 3.8 (стандарт сан), орчин үеийн браузер | Python 3.12 / 3.10, Edge, Chrome, Firefox |
+| Тест | bash; Node ≥ 18 (UI-ийн модны тест, заавал биш) | |
+| Эрх | `insmod`, `rmmod` — `sudo` | |
+
+### A2. Repository татах
 
 ```bash
-sudo apt install build-essential linux-headers-$(uname -r) python3
-cd src/kmod && make && cd ../..
-sudo insmod src/kmod/pid.ko
-python3 src/ui/server.py           # → http://localhost:8000
+git clone https://github.com/Tugu8/os-bd1-IV-2-2-.git
+cd os-bd1-IV-2-2-
+git checkout v1.0.0          # БД1-ийн хувилбар (Release гарсны дараа)
 ```
+
+### A3. Dependency суулгах
+
+```bash
+sudo bash src/prereq/setup_ubuntu_headers.sh
+# эсвэл гараар:
+sudo apt update
+sudo apt install build-essential linux-headers-$(uname -r) python3
+ls -d /lib/modules/$(uname -r)/build        # байх ёстой
+```
+
+**Secure Boot** асаалттай бол гарын үсэггүй module-ийг kernel татгалзана (`Key was rejected by service`). BIOS/UEFI-ээс унтраана эсвэл `mokutil`-оор гарын үсэг бүртгэнэ.
+
+### A4. Build ба Run
+
+```bash
+# 1) 2-р бүлгийн бэлтгэл module-ууд (заавал биш, орчин зөв эсэхийг шалгана)
+make -C src/prereq && sudo make -C src/prereq test          # 9 PASS
+
+# 2) Үндсэн module
+cd src/kmod && make && cd ../..            # Makefile нь $(PWD) ашигладаг тул хавтсандаа орж make
+sudo insmod src/kmod/pid.ko
+ls -l /proc/pid                            # -rw-rw-rw- 1 root root 0 ... /proc/pid
+sudo dmesg | tail -1                       # /proc/pid created
+
+# 3) Номын жишээ
+echo $$ > /proc/pid && cat /proc/pid
+echo 1  > /proc/pid && cat /proc/pid
+
+# 4) UI
+python3 src/ui/server.py                   # → http://localhost:8000 (Ctrl+C — зогсоох)
+python3 src/ui/server.py --port 9000       # порт эзлэгдсэн бол
+
+# 5) Зогсоох, цэвэрлэх
+sudo rmmod pid
+(cd src/kmod && make clean)
+make -C src/prereq clean
+```
+
+### A5. Үндсэн тестийн өгөгдөл
+
+```bash
+bash tests/basic/test_basic.sh            # /proc/pid нь 0666 тул sudo хэрэггүй
+```
+
+| № | Оролт / нөхцөл | Хүлээгдсэн үр дүн |
+|---|---|---|
+| 1 | Ажиллаж буй bash-ийн PID (`$$`) | `command = [bash] pid = [$$] state = [N]`, `parent = [...]` |
+| 2 | PID `1` | `command = [systemd]` (эсвэл `init`), олон `child` мөр |
+| 3 | Байхгүй PID (`pid_max` дотор ашиглагдаагүй) | write амжилттай, read **0 байт** |
+| 4 | `sleep` хүү процесс үүсгээд эцгийн PID | `child = [sleep] pid = [...]` мөр гарна |
+| 5 | Kernel thread (`[kthreadd]` гэх мэт) | `pid = [N]` мэдээлэл гарна |
+
+### A6. Нэмэлт boundary / error тест
+
+```bash
+bash tests/boundary/test_boundary.sh
+python3 -m unittest src/ui/tests/test_api.py     # UI API, 24 тест
+python3 src/ui/contract_check.py                 # module ↔ UI интерфейс
+```
+
+| № | Оролт | Хүлээгдсэн үр дүн |
+|---|---|---|
+| 1 | `abc` | `write error: Invalid argument`, өмнөх PID хэвээр |
+| 2 | `-5` | `Invalid argument` |
+| 3 | хоосон мөр | `Invalid argument` |
+| 4 | `0` | `Invalid argument` (idle task-ийг татгалзана) |
+| 5 | `99999999` (> `PID_MAX_LIMIT` 4194304) | `Invalid argument` |
+| 6 | `99999999999999999999` (long-оос их) | `Numerical result out of range` / `Invalid argument` |
+| 7 | 32 байтаас урт мөр | `Invalid argument` |
+
+### A7. Бодит үр дүн
+
+| Тест | Ubuntu 24.04 bare-metal (`tests/kmod_baremetal.txt`) | WSL2 6.6.87.2 (2026-10-26) |
+|---|---|---|
+| `tests/basic/test_basic.sh` | — (гараар ижил тохиолдлууд: бүгд ✔) | 4 PASS, 0 FAIL, 1 SKIP (тест 5 — доорхыг үз) |
+| `tests/boundary/test_boundary.sh` | — (гараар: бүгд ✔) | 7 PASS, 0 FAIL |
+| `make -C src/prereq test` | | 9 PASS, 0 FAIL |
+| `src/ui/tests/test_api.py` | | 24 тест OK (1 алгассан — `/proc/pid_tree`-тэй module шаардлагатай) |
+| `src/ui/contract_check.py` | 17 ✔, 1 ⚠, 0 ✖ | 17 ✔, 1 ⚠, 0 ✖ |
+
+⚠ = `/proc/pid_tree` байхгүй — UI `book` горимоор (хүүхдүүдийг `/proc/pid`-ийн `child` мөрөөс) ажиллана, алдаа биш.
+
+### A8. Known issues
+
+| Асуудал | Шалтгаан | Шийдэл |
+|---|---|---|
+| `make: *** /lib/modules/.../build: No such file or directory` | `linux-headers` суугаагүй | A3 |
+| `insmod: ERROR: could not insert module pid.ko: Key was rejected by service` | Secure Boot | A3 — Secure Boot унтраах |
+| `module verification failed: signature and/or required key missing - tainting kernel` | гарын үсэггүй module | анхааруулга л, ажиллагаанд нөлөөлөхгүй |
+| `insmod: ERROR: ... File exists` | module аль хэдийн ачаалагдсан | `sudo rmmod pid` хийгээд дахин |
+| `make -C src/kmod` ажиллахгүй | Makefile `$(PWD)` ашигладаг | `cd src/kmod && make` |
+| `state = [8193]`, `[260]` гэх мэт том тоо | `__state` битийн маск (`TASK_INTERRUPTIBLE \| TASK_FREEZABLE` гэх мэт) | зөв; үсгэн төлөвийг UI харуулна |
+| Тест 5 `[SKIP] No visible kernel thread` | WSL/контейнерийн PID namespace-д kernel thread харагдахгүй | bare-metal дээр ажиллуулна |
+| Хоёр терминалаас зэрэг `echo N > /proc/pid` хийхэд нөгөөгийнх нь гарна | module нэг глобал `l_pid` хадгалдаг | UI сервер mutex-ээр хамгаалдаг; терминалд нэг нэгээр нь |
+| UI: `Address already in use` | 8000 порт эзлэгдсэн | `--port 9000` |
+| WSL2: `linux-headers-...-microsoft-standard-WSL2` багц олдохгүй | Microsoft kernel-д headers багц байдаггүй | хөгжүүлэлтэд `sudo bash src/prereq/setup_wsl_kernel.sh` |
 
 ---
 

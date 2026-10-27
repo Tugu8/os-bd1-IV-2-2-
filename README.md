@@ -67,8 +67,8 @@ UI нь зөвхөн Python 3 стандарт сан, браузер ашигл
 | `src/ui/` | Task hierarchy дүрслэлтэй interactive UI | B190910014 |
 | `tests/basic/` | Номын жишээ болон үндсэн тестүүд | B231910003 |
 | `tests/boundary/` | Захын болон буруу оролтын тестүүд | B231910003 |
-| `docs/` | Manual (хэрэглэгчийн + operational), зургууд, [TASKS.md](docs/TASKS.md) | B241940099, B210930842 |
-| `report/` | Үндсэн тайлан (Report.pdf) | B232270108 |
+| `docs/` | Manual ([Manual.md](docs/Manual.md), [IV-2-2_Manual.pdf](docs/IV-2-2_Manual.pdf)), зургууд, [TASKS.md](docs/TASKS.md) | B241940099, B210930842 |
+| `report/` | Үндсэн тайлан [IV-2-2_BD1_Report.pdf](report/IV-2-2_BD1_Report.pdf) (+ `.tex`, `build_pdfs.sh`) | B232270108 |
 | `review/` | IV-2-5 багийн ажилд бичих шүүмж (Review.pdf) | B241940099 (бүгд) |
 
 ## Тест
@@ -94,6 +94,4 @@ B242270047 · B190910014 · B210930842 · B231910003 · B232270108 · B241940099
 ## Бэлэн код, сан, AI ашиглалт
 
 - Kernel module нь номын Programming Project 2-ын skeleton (`proc_ops`, `kmalloc`, `copy_from_user`, `kstrtol`, `pid_task`, `find_vpid`) дээр суурилсан.
-- UI (`src/ui/`): кодыг Claude (Anthropic) AI туслахын тусламжтай боловсруулсан. B190910014 уншиж, ажиллуулж, туршиж шалгасан. Гадны сан ашиглаагүй.
-- Хэрэглэгчийн manual (`docs/Manual.md`) болон шүүмжийн төлөвлөгөө (`review/README.md`): ноорогийг Claude (Anthropic) AI туслахын тусламжтай боловсруулсан. B241940099 уншиж, UI-ийн код болон README-тэй тулгаж шалгасан.
-- Бусад хэсэгт AI ашигласан бол хариуцагч нь энд нэмж бичнэ.
+- Код болон баримт бичгийг боловсруулахад AI туслах (Claude) ашигласан; хариуцсан гишүүд уншиж, ажиллуулж, туршиж шалгасан. Гадны программын сан ашиглаагүй.
