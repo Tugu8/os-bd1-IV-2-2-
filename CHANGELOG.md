@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### Өөрчилсөн
+- **report** (B242270047): тайлангийн нүүрийг энгийн болгосон — сэдэв, хуваарилалтын код, багш, гишүүдийн нэр ба оюутны код, огноо. §5.5 ба Хавсралт A-д B210930842-ийн бэлтгэсэн ноорогийг (`prereq-manual.docx`) тэмдэглэсэн.
+
 ## [1.0.0] - 2026-10-27
 
 ### Нэмсэн
@@ -17,7 +20,7 @@
 - **kmod** (B242270047): bare-metal туршилтын үр дүн (`tests/kmod_baremetal.txt`), тайлангийн хэсэг (`src/kmod/REPORT_KMOD.md`), UI-ийн bare-metal screenshot.
 - **tests** (B231910003, PR #11): `tests/basic/test_basic.sh` (5), `tests/boundary/test_boundary.sh` (7).
 - **tests** (B242270047): bare-metal Ubuntu 24.04.5 (kernel 7.0.0-34) дээрх автомат тестийн үр дүн (`*/result_baremetal.txt`, `tests/env_baremetal.txt`): basic 5/5, boundary 7/7, prereq 9/9, UI API 24 OK (1 алгассан), contract_check 17 ✔ 1 ⚠. Тайлан §8.1, Manual A7-д бөглөж, 3 screenshot нэмсэн (`term_book_example.png`, `term_tests_pass.png`, `ui_invalid_input.png`).
-- **prereq** (бэлтгэсэн B190910014, хариуцагч B210930842 — гүйцэтгээгүй): 2-р бүлгийн бэлтгэл module-ууд (`simple`, `/proc/hello`, `/proc/jiffies`, `/proc/seconds`), `sudo make test` (9), Ubuntu/WSL2 build орчны скрипт; `docs/Manual.md` §A Operational.
+- **prereq** (бэлтгэсэн B190910014, хариуцагч B210930842 — ноорог `prereq-manual.docx`): 2-р бүлгийн бэлтгэл module-ууд (`simple`, `/proc/hello`, `/proc/jiffies`, `/proc/seconds`), `sudo make test` (9), Ubuntu/WSL2 build орчны скрипт; `docs/Manual.md` §A Operational.
 - **report** (бэлтгэсэн B190910014, хариуцагч B232270108 — гүйцэтгээгүй): `report/IV-2-2_BD1_Report.pdf` (17 х.) ба `docs/IV-2-2_Manual.pdf` (17 х.); `report/build_pdfs.sh` дахин үүсгэнэ.
 
 ### Засвар
