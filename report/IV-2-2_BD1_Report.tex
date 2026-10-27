@@ -106,7 +106,7 @@ B241940099 & Хэрэглэгчийн manual, README Quick Start, БД1 пост
 
 \textbf{Туршилт.} Номын жишээ (bash, PID 1), байхгүй PID, 7 төрлийн буруу оролт, kernel thread, хүү процесс үүсгэх тестүүдийг bare-metal Ubuntu 24.04 (kernel 7.0.0) болон хөгжүүлэлтийн WSL2 (kernel 6.6.87.2) дээр ажиллуулсан.
 
-\textbf{Гол үр дүн.} Bash скриптийн 11 тест, 2-р бүлгийн бэлтгэл module-ийн 9 шалгалт, UI-ийн 24 API ба 12 байрлалын тест бүгд давсан; module ↔ UI интерфейсийн шалгагч 17 \ok, 0 \no{}. Туршилтаар PID namespace-ийн алдаа (\code{task->pid} → \code{task_pid_vnr}) илэрч засагдсан.
+\textbf{Гол үр дүн.} Bash скриптийн 12 тест (bare-metal дээр 12/12; WSL2-д kernel thread тест алгасагдсан), 2-р бүлгийн бэлтгэл module-ийн 9 шалгалт, UI-ийн 24 API ба 12 байрлалын тест бүгд давсан; module ↔ UI интерфейсийн шалгагч 17 \ok, 0 \no{}. Туршилтаар PID namespace-ийн алдаа (\code{task->pid} → \code{task_pid_vnr}) илэрч засагдсан.
 
 \tableofcontents
 \newpage
@@ -422,17 +422,17 @@ P1–P9 & Бэлтгэл module-ууд & dmesg-ийн мөрүүд, \code{Hello 
 \textbf{Багц} & \textbf{Bare-metal 7.0.0} & \textbf{WSL2 6.6.87.2}\\
 \midrule
 Гараар (\code{tests/kmod_baremetal.txt}, 10 тохиолдол) & 10/10 \ok & —\\
-\code{tests/basic/test_basic.sh} & — & 4 \pass, 1 SKIP\textsuperscript{a}\\
-\code{tests/boundary/test_boundary.sh} & — & 7/7 \pass\\
-\code{sudo make -C src/prereq test} & — & 9/9 \pass\\
-\code{src/ui/tests/test_api.py} (unittest) & UI ажилласан (зураг 1–2) & 24 OK (1 алгассан\textsuperscript{b})\\
+\code{tests/basic/test_basic.sh} & 5/5 \pass & 4 \pass, 1 SKIP\textsuperscript{a}\\
+\code{tests/boundary/test_boundary.sh} & 7/7 \pass & 7/7 \pass\\
+\code{sudo make -C src/prereq test} & 9/9 \pass & 9/9 \pass\\
+\code{src/ui/tests/test_api.py} (unittest) & 24 OK (1 алгассан\textsuperscript{b}) & 24 OK (1 алгассан\textsuperscript{b})\\
 \code{src/ui/tests/test_tree.mjs} (Node) & \multicolumn{2}{l}{12/12 (kernel-ээс хамаарахгүй)}\\
 \code{src/ui/contract_check.py} & 17 \ok, 1 \warn{}, 0 \no{} & 17 \ok, 1 \warn{}, 0 \no{}\\
 \bottomrule
 \end{tabular}
 
 \smallskip
-{\footnotesize a — WSL-ийн PID namespace-д kernel thread харагдахгүй; bare-metal дээр B5 \ok.\quad b — \code{/proc/pid_tree}-тэй module шаардлагатай тест.\quad \warn{} — \code{/proc/pid_tree} байхгүй тул \code{book} горим.}
+{\footnotesize a — WSL-ийн PID namespace-д kernel thread харагдахгүй; bare-metal дээр kernel thread тест (B5, PID 2) \pass.\quad b — \code{/proc/pid_tree}-тэй module шаардлагатай тест.\quad \warn{} — \code{/proc/pid_tree} байхгүй тул \code{book} горим.}
 \end{center}
 
 \subsection{Bare-metal дээрх бодит гаралт}
@@ -483,6 +483,21 @@ bash: echo: write error: Invalid argument
 \centering
 \includegraphics[width=\linewidth,height=0.4\textheight,keepaspectratio]{ui_baremetal_history.png}
 \caption{Bare-metal: сценарийн түүх — SIGSTOP, SIGCONT, SIGTERM → zombie, \code{wait()}.}
+\end{figure}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.75\linewidth,height=0.4\textheight,keepaspectratio]{term_book_example.png}
+\caption{Bare-metal: номын жишээ — \code{echo $$ > /proc/pid} (bash, эцэг \code{gnome-terminal-}) ба \code{echo 1 > /proc/pid} (systemd).}
+\end{figure}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.75\linewidth,height=0.3\textheight,keepaspectratio]{term_tests_pass.png}
+\caption{Bare-metal: \code{test_basic.sh} 5/5, \code{test_boundary.sh} 7/7 \pass{} — Summary.}
+\end{figure}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth,height=0.4\textheight,keepaspectratio]{ui_invalid_input.png}
+\caption{Bare-metal: UI-д PID талбарт \code{abc} оруулахад гарах улаан алдааны мэдэгдэл.}
 \end{figure}
 \begin{figure}[h!]
 \centering
