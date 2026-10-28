@@ -15,9 +15,9 @@
 
 | | Шаардлага | Туршсан |
 |---|---|---|
-| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12 — bare-metal эсвэл VM (VirtualBox, VMware). WSL2-д `linux-headers` багц байхгүй (A8) | Ubuntu 24.04.5 LTS bare-metal (`systemd-detect-virt` = `none`) |
-| Kernel | ≥ 5.14 (`struct proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14) | `7.0.0-34-generic`; хөгжүүлэлтэд `6.6.87.2-microsoft-standard-WSL2` |
-| Compiler | gcc + GNU make (`build-essential`); kernel-ийг хөрвүүлсэн gcc-тэй ижил хувилбар | gcc 13.3.0 (bare-metal), gcc 11.4 (WSL2) |
+| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12 — bare-metal эсвэл VM (VirtualBox, VMware). WSL2-д `linux-headers` багц байхгүй (A8) | Ubuntu 24.04.5 LTS bare-metal (`systemd-detect-virt` = `none`); Kubuntu 26.04.1 LTS (Acer Nitro, Secure Boot асаалттай) |
+| Kernel | ≥ 5.14 (`struct proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14) | `7.0.0-34-generic`; `7.0.0-38-generic` (Kubuntu); хөгжүүлэлтэд `6.6.87.2-microsoft-standard-WSL2` |
+| Compiler | gcc + GNU make (`build-essential`); kernel-ийг хөрвүүлсэн gcc-тэй ижил хувилбар | gcc 13.3.0 (Ubuntu), gcc 15.2.0 (Kubuntu), gcc 11.4 (WSL2) |
 | Kernel headers | `linux-headers-$(uname -r)` | |
 | UI | Python ≥ 3.8 (стандарт сан), орчин үеийн браузер | Python 3.12 / 3.10, Edge, Chrome, Firefox |
 | Тест | bash; Node ≥ 18 (UI-ийн модны тест, заавал биш) | |
@@ -28,7 +28,7 @@
 ```bash
 git clone https://github.com/Tugu8/os-bd1-IV-2-2-.git
 cd os-bd1-IV-2-2-
-git checkout v1.0.0          # БД1-ийн хувилбар (Release гарсны дараа)
+git checkout v1.0.0          # БД1-ийн хувилбар
 ```
 
 ### A3. Dependency суулгах
@@ -41,7 +41,15 @@ sudo apt install build-essential linux-headers-$(uname -r) python3
 ls -d /lib/modules/$(uname -r)/build        # байх ёстой
 ```
 
-**Secure Boot** асаалттай бол гарын үсэггүй module-ийг kernel татгалзана (`Key was rejected by service`). BIOS/UEFI-ээс унтраана эсвэл `mokutil`-оор гарын үсэг бүртгэнэ.
+**Secure Boot** асаалттай бол гарын үсэггүй module-ийг kernel татгалзана (`Key was rejected by service`). Хоёр арга бий: BIOS/UEFI-ээс Secure Boot-ийг унтраах, эсвэл өөрийн түлхүүрийг (MOK) бүртгээд module-д гарын үсэг зурах (Kubuntu 26.04 дээр ингэж туршсан):
+
+```bash
+openssl req -new -x509 -newkey rsa:2048 -nodes -days 36500 \
+  -subj "/CN=IV-2-2 module/" -keyout MOK.priv -outform DER -out MOK.der
+sudo mokutil --import MOK.der       # нууц үг тохируулна; дахин асаахад MOK Manager → Enroll MOK
+# module-ийг build хийсний дараа (A4), insmod-оос өмнө:
+sudo /lib/modules/$(uname -r)/build/scripts/sign-file sha256 MOK.priv MOK.der src/kmod/pid.ko
+```
 
 ### A4. Build ба Run
 
@@ -98,27 +106,34 @@ python3 src/ui/contract_check.py                 # module ↔ UI интерфе�
 | 3 | хоосон мөр | `Invalid argument` |
 | 4 | `0` | `Invalid argument` (idle task-ийг татгалзана) |
 | 5 | `99999999` (> `PID_MAX_LIMIT` 4194304) | `Invalid argument` |
-| 6 | `99999999999999999999` (long-оос их) | `Numerical result out of range` / `Invalid argument` |
+| 6 | 30 оронтой `999...9` (long-оос их) | `Numerical result out of range` |
 | 7 | 32 байтаас урт мөр | `Invalid argument` |
 
 ### A7. Бодит үр дүн
 
-| Тест | Ubuntu 24.04 bare-metal (2026-10-27, `*/result_baremetal.txt`) | WSL2 6.6.87.2 (2026-10-26) |
-|---|---|---|
-| `tests/basic/test_basic.sh` | 5 PASS, 0 FAIL (тест 5 kernel thread PID 2 — PASS) | 4 PASS, 0 FAIL, 1 SKIP (тест 5 — доорхыг үз) |
-| `tests/boundary/test_boundary.sh` | 7 PASS, 0 FAIL | 7 PASS, 0 FAIL |
-| `make -C src/prereq test` | 9 PASS, 0 FAIL | 9 PASS, 0 FAIL |
-| `src/ui/tests/test_api.py` | 24 тест OK (1 алгассан — `/proc/pid_tree`-тэй module шаардлагатай) | 24 тест OK (1 алгассан — `/proc/pid_tree`-тэй module шаардлагатай) |
-| `src/ui/contract_check.py` | 17 ✔, 1 ⚠, 0 ✖ | 17 ✔, 1 ⚠, 0 ✖ |
+| Тест | Ubuntu 24.04 (Inspiron) | Kubuntu 26.04.1 (Acer) | WSL2 6.6.87.2 |
+|---|---|---|---|
+| `tests/basic/test_basic.sh` | 5 PASS, 0 FAIL | 5 PASS, 0 FAIL | 4 PASS, 1 SKIP |
+| `tests/boundary/test_boundary.sh` | 7 PASS, 0 FAIL | 7 PASS, 0 FAIL | 7 PASS, 0 FAIL |
+| `make -C src/prereq test` | 9 PASS, 0 FAIL | — | 9 PASS, 0 FAIL |
+| `src/ui/tests/test_api.py` | 24 OK, 1 алгассан | — | 24 OK, 1 алгассан |
+| `src/ui/contract_check.py` | 17 ✔, 1 ⚠, 0 ✖ | — | 17 ✔, 1 ⚠, 0 ✖ |
+
+- Ubuntu 24.04 bare-metal: 2026-10-27, `*/result_baremetal.txt`. Тест 5 (kernel thread, PID 2) — PASS.
+- Kubuntu 26.04.1: 2026-10-27, `*/result_acer_kubuntu.txt`, `tests/env_acer_kubuntu.txt`.
+- WSL2: 2026-10-26. Тест 5 SKIP — WSL-д kernel thread харагдахгүй (A8).
+- `test_api.py`-ийн алгассан 1 тест нь `/proc/pid_tree`-тэй module шаарддаг.
 
 ⚠ = `/proc/pid_tree` байхгүй — UI `book` горимоор (хүүхдүүдийг `/proc/pid`-ийн `child` мөрөөс) ажиллана, алдаа биш.
+
+Kubuntu 26.04-ийн `tee` нь Rust хувилбар тул boundary тестийн алдааны мөр `tee: /proc/pid: Invalid argument`-ийн оронд `/proc/pid: Invalid argument (os error 22)` гэж гарна. Errno нь ижил, тест зөв давна.
 
 ### A8. Known issues
 
 | Асуудал | Шалтгаан | Шийдэл |
 |---|---|---|
 | `make: *** /lib/modules/.../build: No such file or directory` | `linux-headers` суугаагүй | A3 |
-| `insmod: ERROR: could not insert module pid.ko: Key was rejected by service` | Secure Boot | A3 — Secure Boot унтраах |
+| `insmod: ERROR: could not insert module pid.ko: Key was rejected by service` | Secure Boot | A3 — Secure Boot унтраах эсвэл module-д гарын үсэг зурах |
 | `module verification failed: signature and/or required key missing - tainting kernel` | гарын үсэггүй module | анхааруулга л, ажиллагаанд нөлөөлөхгүй |
 | `insmod: ERROR: ... File exists` | module аль хэдийн ачаалагдсан | `sudo rmmod pid` хийгээд дахин |
 | `make -C src/kmod` ажиллахгүй | Makefile `$(PWD)` ашигладаг | `cd src/kmod && make` |
@@ -150,7 +165,7 @@ UI-д зөвхөн Python 3 болон браузер хэрэгтэй. Нэмэ
 | Python | ≥ 3.8 (зөвхөн стандарт сан) |
 | Браузер | Edge, Chrome, Firefox (орчин үеийн хувилбар) |
 
-Туршсан орчин: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic`, gcc 13.3 (хөгжүүлэлтэд WSL2 `6.6.87.2`, gcc 11.4). Module-ийг build хийхэд `build-essential`, `linux-headers-$(uname -r)` хэрэгтэй. Node ≥ 18 нь зөвхөн UI-ийн модны тестэд хэрэгтэй, заавал биш. Дэлгэрэнгүйг §A-аас харна уу.
+Туршсан орчин: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic`, gcc 13.3; Kubuntu 26.04.1, kernel `7.0.0-38-generic`, gcc 15.2 (хөгжүүлэлтэд WSL2 `6.6.87.2`, gcc 11.4). Module-ийг build хийхэд `build-essential`, `linux-headers-$(uname -r)` хэрэгтэй. Node ≥ 18 нь зөвхөн UI-ийн модны тестэд хэрэгтэй, заавал биш. Дэлгэрэнгүйг §A-аас харна уу.
 
 ### B2. Эхлүүлэх
 

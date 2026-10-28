@@ -52,9 +52,9 @@ UI нь зөвхөн Python 3 стандарт сан, браузер ашигл
 
 | | Хувилбар |
 |---|---|
-| OS | Ubuntu 22.04 / 24.04 LTS, Debian — bare-metal эсвэл VM (туршсан: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic`; хөгжүүлэлт: WSL2 `6.6.87.2`) |
+| OS | Ubuntu 22.04 / 24.04 LTS, Debian — bare-metal эсвэл VM (туршсан: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic`; Kubuntu 26.04.1, kernel `7.0.0-38-generic`; хөгжүүлэлт: WSL2 `6.6.87.2`) |
 | Kernel API | `proc_ops` (≥ 5.6), `task_struct->__state` (≥ 5.14), `seq_file` |
-| Хөрвүүлэгч | gcc 13.3 (bare-metal), gcc 11.4 (WSL2), GNU make |
+| Хөрвүүлэгч | gcc 13.3 (Ubuntu 24.04), gcc 15.2 (Kubuntu 26.04), gcc 11.4 (WSL2), GNU make |
 | UI | Python ≥ 3.8, орчин үеийн браузер (Edge, Chrome, Firefox) |
 | Тест | bash, Python `unittest`; Node ≥ 18 (UI-ийн модны тест, заавал биш) |
 
@@ -74,13 +74,13 @@ UI нь зөвхөн Python 3 стандарт сан, браузер ашигл
 ## Тест
 
 ```bash
-bash tests/basic/test_basic.sh            # номын жишээ, PID 1, байхгүй PID, child
-bash tests/boundary/test_boundary.sh      # abc, -5, хоосон, маш том тоо, kernel thread
+bash tests/basic/test_basic.sh            # номын жишээ, PID 1, байхгүй PID, child, kernel thread
+bash tests/boundary/test_boundary.sh      # abc, -5, хоосон, 0, маш том тоо, overflow, урт мөр
 python3 -m unittest src/ui/tests/test_api.py
 python3 src/ui/contract_check.py          # module ↔ UI интерфейс (✔ / ⚠ / ✖)
 ```
 
-`tests/`, `src/ui/` нь тус тусын PR merge хийгдсэний дараа ажиллана. Тест бүрийн хүлээгдсэн ба бодит үр дүнг `tests/`-ийн README-д screenshot-той хадгална.
+Бодит үр дүн: `tests/*/result_baremetal.txt` (Ubuntu 24.04), `tests/*/result_acer_kubuntu.txt` (Kubuntu 26.04), орчны мэдээлэл `tests/env_*.txt`-д байна. Нэгтгэсэн хүснэгтийг [Manual](docs/Manual.md)-ийн A7 болон тайлангийн §8.1-ээс харна уу.
 
 ## Хувилбар ба ажлын заавар
 
