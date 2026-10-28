@@ -176,7 +176,7 @@ UI-г мөн ижил машин дээр module-тэй хамт ажиллуу�
 
 ![UI: демо сценарийн түүх (SIGSTOP, SIGCONT, SIGTERM → zombie, wait)](../../docs/images/ui_baremetal_history.png)
 
-Бусад screenshot-уудыг `tests/` (B231910003) хэсгээс авна.
+Тестийн скриптүүдийн (B231910003) бодит гаралт `tests/*/result_*.txt`-д, терминалын screenshot нь `docs/images/term_tests_pass.png`-д байна.
 
 ## 9. Хэлэлцүүлэг — хязгаарлалт
 

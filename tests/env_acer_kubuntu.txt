@@ -1,4 +1,4 @@
-]633;E;echo "date: $(date '+%Y-%m-%d %H:%M:%S %z')";10f27e31-fc05-40fa-9f46-c8012ad72143]633;Cdate: 2026-10-27 19:22:11 +0800
+date: 2026-10-27 19:22:11 +0800
 uname: Linux kalltpc 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64 GNU/Linux
 PRETTY_NAME="Ubuntu 26.04.1 LTS"
 gcc: gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
