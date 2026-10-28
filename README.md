@@ -84,7 +84,7 @@ python3 src/ui/contract_check.py          # module ↔ UI интерфейс (�
 
 ## Хувилбар ба ажлын заавар
 
-- Хувилбарыг [Semantic Versioning](https://semver.org/lang/mn/) (`vMAJOR.MINOR.PATCH`)-ээр дугаарлана. БД1-ийн илгээлт → `v1.0.0` (засвар: `v1.0.1`), БД2 → `v2.0.0`. Өөрчлөлтийг [CHANGELOG.md](CHANGELOG.md)-д бичнэ.
+- Хувилбарыг [Semantic Versioning](https://semver.org/lang/mn/) (`vMAJOR.MINOR.PATCH`)-ээр дугаарлана. БД1-ийн илгээлт → `v1.0.0` (сүүлийн засвар: `v1.0.2`), БД2 → `v2.0.0`. Өөрчлөлтийг [CHANGELOG.md](CHANGELOG.md)-д бичнэ.
 - Branch, commit, Pull Request, review, release хийх дүрэм: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Багийн гишүүд

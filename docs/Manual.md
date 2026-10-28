@@ -1,4 +1,4 @@
-# IV-2-2 Task Hierarchy — Хэрэглэгчийн manual
+# IV-2-2 Task Hierarchy: Хэрэглэгчийн manual
 
 **Хичээл:** F.CSM302 Үйлдлийн систем • Бие даалт 1 **Хуваарилалтын код:** IV-2-2
 **Хэрэглэгчийн хэсгийг бичсэн:** B241940099 **Operational хэсэг:** B210930842 (§A)
@@ -15,20 +15,20 @@
 
 | | Шаардлага | Туршсан |
 |---|---|---|
-| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12 — bare-metal эсвэл VM (VirtualBox, VMware). WSL2-д `linux-headers` багц байхгүй (A8) | Ubuntu 24.04.5 LTS bare-metal (`systemd-detect-virt` = `none`); Kubuntu 26.04.1 LTS (Acer Nitro, Secure Boot асаалттай) |
+| OS | Ubuntu 22.04 / 24.04 LTS, Debian 12; bare-metal эсвэл VM (VirtualBox, VMware). WSL2-д `linux-headers` багц байхгүй (A8) | Ubuntu 24.04.5 LTS bare-metal (`systemd-detect-virt` = `none`); Kubuntu 26.04.1 LTS (Acer Nitro, Secure Boot асаалттай) |
 | Kernel | ≥ 5.14 (`struct proc_ops` ≥ 5.6, `task_struct->__state` ≥ 5.14) | `7.0.0-34-generic`; `7.0.0-38-generic` (Kubuntu); хөгжүүлэлтэд `6.6.87.2-microsoft-standard-WSL2` |
 | Compiler | gcc + GNU make (`build-essential`); kernel-ийг хөрвүүлсэн gcc-тэй ижил хувилбар | gcc 13.3.0 (Ubuntu), gcc 15.2.0 (Kubuntu), gcc 11.4 (WSL2) |
 | Kernel headers | `linux-headers-$(uname -r)` | |
 | UI | Python ≥ 3.8 (стандарт сан), орчин үеийн браузер | Python 3.12 / 3.10, Edge, Chrome, Firefox |
 | Тест | bash; Node ≥ 18 (UI-ийн модны тест, заавал биш) | |
-| Эрх | `insmod`, `rmmod` — `sudo` | |
+| Эрх | `insmod`, `rmmod` командад `sudo` хэрэгтэй | |
 
 ### A2. Repository татах
 
 ```bash
 git clone https://github.com/Tugu8/os-bd1-IV-2-2-.git
 cd os-bd1-IV-2-2-
-git checkout v1.0.1          # БД1-ийн хамгийн сүүлийн хувилбар
+git checkout v1.0.2          # БД1-ийн хамгийн сүүлийн хувилбар
 ```
 
 ### A3. Dependency суулгах
@@ -46,7 +46,7 @@ ls -d /lib/modules/$(uname -r)/build        # байх ёстой
 ```bash
 openssl req -new -x509 -newkey rsa:2048 -nodes -days 36500 \
   -subj "/CN=IV-2-2 module/" -keyout MOK.priv -outform DER -out MOK.der
-sudo mokutil --import MOK.der       # нууц үг тохируулна; дахин асаахад MOK Manager → Enroll MOK
+sudo mokutil --import MOK.der       # нууц үг тохируулна; дахин асаахад MOK Manager дээр Enroll MOK
 # module-ийг build хийсний дараа (A4), insmod-оос өмнө:
 sudo /lib/modules/$(uname -r)/build/scripts/sign-file sha256 MOK.priv MOK.der src/kmod/pid.ko
 ```
@@ -68,7 +68,7 @@ echo $$ > /proc/pid && cat /proc/pid
 echo 1  > /proc/pid && cat /proc/pid
 
 # 4) UI
-python3 src/ui/server.py                   # → http://localhost:8000 (Ctrl+C — зогсоох)
+python3 src/ui/server.py                   # http://localhost:8000 (Ctrl+C дарж зогсооно)
 python3 src/ui/server.py --port 9000       # порт эзлэгдсэн бол
 
 # 5) Зогсоох, цэвэрлэх
@@ -96,7 +96,7 @@ bash tests/basic/test_basic.sh            # /proc/pid нь 0666 тул sudo хэ
 ```bash
 bash tests/boundary/test_boundary.sh
 python3 -m unittest src/ui/tests/test_api.py     # UI API, 24 тест
-python3 src/ui/contract_check.py                 # module ↔ UI интерфейс
+python3 src/ui/contract_check.py                 # module ба UI-ийн интерфейс
 ```
 
 | № | Оролт | Хүлээгдсэн үр дүн |
@@ -115,16 +115,16 @@ python3 src/ui/contract_check.py                 # module ↔ UI интерфе�
 |---|---|---|---|
 | `tests/basic/test_basic.sh` | 5 PASS, 0 FAIL | 5 PASS, 0 FAIL | 4 PASS, 1 SKIP |
 | `tests/boundary/test_boundary.sh` | 7 PASS, 0 FAIL | 7 PASS, 0 FAIL | 7 PASS, 0 FAIL |
-| `make -C src/prereq test` | 9 PASS, 0 FAIL | — | 9 PASS, 0 FAIL |
-| `src/ui/tests/test_api.py` | 24 OK, 1 алгассан | — | 24 OK, 1 алгассан |
-| `src/ui/contract_check.py` | 17 ✔, 1 ⚠, 0 ✖ | — | 17 ✔, 1 ⚠, 0 ✖ |
+| `make -C src/prereq test` | 9 PASS, 0 FAIL | хийгээгүй | 9 PASS, 0 FAIL |
+| `src/ui/tests/test_api.py` | 24 OK, 1 алгассан | хийгээгүй | 24 OK, 1 алгассан |
+| `src/ui/contract_check.py` | 17 зөв, 1 анхааруулга, 0 алдаа | хийгээгүй | 17 зөв, 1 анхааруулга, 0 алдаа |
 
-- Ubuntu 24.04 bare-metal: 2026-10-27, `*/result_baremetal.txt`. Тест 5 (kernel thread, PID 2) — PASS.
+- Ubuntu 24.04 bare-metal: 2026-10-27, `*/result_baremetal.txt`. Тест 5 (kernel thread, PID 2) PASS.
 - Kubuntu 26.04.1: 2026-10-27, `*/result_acer_kubuntu.txt`, `tests/env_acer_kubuntu.txt`.
-- WSL2: 2026-10-26. Тест 5 SKIP — WSL-д kernel thread харагдахгүй (A8).
+- WSL2: 2026-10-26. Тест 5 SKIP, учир нь WSL-д kernel thread харагдахгүй (A8).
 - `test_api.py`-ийн алгассан 1 тест нь `/proc/pid_tree`-тэй module шаарддаг.
 
-⚠ = `/proc/pid_tree` байхгүй — UI `book` горимоор (хүүхдүүдийг `/proc/pid`-ийн `child` мөрөөс) ажиллана, алдаа биш.
+Анхааруулга нь `/proc/pid_tree` байхгүйгээс гарсан. UI `book` горимоор (хүүхдүүдийг `/proc/pid`-ийн `child` мөрөөс) ажиллана, алдаа биш.
 
 Kubuntu 26.04-ийн `tee` нь Rust хувилбар тул boundary тестийн алдааны мөр `tee: /proc/pid: Invalid argument`-ийн оронд `/proc/pid: Invalid argument (os error 22)` гэж гарна. Errno нь ижил, тест зөв давна.
 
@@ -133,7 +133,7 @@ Kubuntu 26.04-ийн `tee` нь Rust хувилбар тул boundary тести
 | Асуудал | Шалтгаан | Шийдэл |
 |---|---|---|
 | `make: *** /lib/modules/.../build: No such file or directory` | `linux-headers` суугаагүй | A3 |
-| `insmod: ERROR: could not insert module pid.ko: Key was rejected by service` | Secure Boot | A3 — Secure Boot унтраах эсвэл module-д гарын үсэг зурах |
+| `insmod: ERROR: could not insert module pid.ko: Key was rejected by service` | Secure Boot | A3: Secure Boot унтраах эсвэл module-д гарын үсэг зурах |
 | `module verification failed: signature and/or required key missing - tainting kernel` | гарын үсэггүй module | анхааруулга л, ажиллагаанд нөлөөлөхгүй |
 | `insmod: ERROR: ... File exists` | module аль хэдийн ачаалагдсан | `sudo rmmod pid` хийгээд дахин |
 | `make -C src/kmod` ажиллахгүй | Makefile `$(PWD)` ашигладаг | `cd src/kmod && make` |
@@ -171,7 +171,7 @@ UI-д зөвхөн Python 3 болон браузер хэрэгтэй. Нэмэ
 
 ```bash
 sudo insmod src/kmod/pid.ko          # Kernel module ачаалах (нэг удаа)
-python3 src/ui/server.py             # UI сервер → http://localhost:8000
+python3 src/ui/server.py             # UI сервер: http://localhost:8000
 ```
 
 Браузер дээр <http://localhost:8000> хаягийг нээнэ. WSL2 дээр Windows-ийн браузераас шууд нээгдэнэ.
@@ -190,13 +190,13 @@ python3 src/ui/server.py             # UI сервер → http://localhost:8000
 | Хэсэг | Байрлал | Юунд хэрэгтэй |
 |---|---|---|
 | **Төлөвийн шошго** | баруун дээд | Module ачаалагдсан эсэх (§B4.4) |
-| **Task сонгох** | зүүн дээд | PID бичих, гүн сонгох, `PID 1`, Demo, Reset, ▶ Сценари, автомат шинэчлэх |
+| **Task сонгох** | зүүн дээд | PID бичих, гүн сонгох, `PID 1`, Demo, Reset, Сценари, автомат шинэчлэх |
 | **Туршилт удирдах** | зүүн (Demo эхэлсний дараа гарна) | Туршилтын процесс үүсгэх, зогсоох, устгах |
 | **Процессууд** | зүүн доод | Ажиллаж буй процессын жагсаалт, PID эсвэл нэрээр шүүх |
 | **Номын интерфейс** | голд, дээд | `echo N > /proc/pid`, `cat /proc/pid`-ийн бодит гаралт |
 | **Task мэдээлэл** | баруун дээд карт | Command, PID, TGID, PPID, State, UID, урсгалын тоо, өвөг эцэг ба хүүгийн тоо |
 | **Шатлал** | голд | Task hierarchy мод. Энэ бол гол дүрслэл |
-| **Түүх** | доод | Шинэчлэлт бүрийн snapshot. ◀ ▶-ээр эргэн харна, `⤓ JSON / SVG / PNG` татна |
+| **Түүх** | доод | Шинэчлэлт бүрийн snapshot. Өмнөх, дараах товчоор эргэн харна, JSON / SVG / PNG файлаар татна |
 | **Module дуудлагын лог**, **Module-ийн түүхий гаралт** | хамгийн доод (нээх мөр) | UI нь kernel module-ийг бодитоор дууддагийн нотолгоо |
 
 ![Дэлгэцийн бүтэц](images/ui_baremetal_tree.png)
@@ -218,7 +218,7 @@ python3 src/ui/server.py             # UI сервер → http://localhost:8000
 | **Z** | улаан `#d64545` | zombie | Дууссан ч эцэг нь `wait()` хийгээгүй тул бүртгэл нь үлдсэн |
 | **I** | цайвар саарал `#a5adba` | idle | Kernel-ийн идэвхгүй thread |
 
-`Task мэдээлэл` карт дээр State нь `S — sleeping (__state = 1)` гэж харагдана. `__state` нь kernel-ийн дотоод тоо, `/proc/pid` гаралтын `state = [1]`-тэй ижил.
+`Task мэдээлэл` карт дээр State нь S (sleeping), `__state = 1` гэж харагдана. `__state` нь kernel-ийн дотоод тоо, `/proc/pid` гаралтын `state = [1]`-тэй ижил.
 
 #### B4.2 Зангилаа ба шугамын тэмдэг
 
@@ -226,18 +226,18 @@ python3 src/ui/server.py             # UI сервер → http://localhost:8000
 |---|---|
 | **Бүдүүн цагаан хүрээ** | Одоо сонгогдсон task |
 | **Тасархай хүрээ** | Энэ процессын хүүхдүүдийг хараахан асуугаагүй (нээж болно) |
-| **⊕** зангилаа дээр | Сонголтоо солилгүй хүүхдүүдийг нь нэг түвшнээр нээнэ |
-| **⊖** зангилаа дээр | Нээсэн хүүхдүүдийг буцааж хаана |
+| Зангилаа дээрх **+** товч | Сонголтоо солилгүй хүүхдүүдийг нь нэг түвшнээр нээнэ |
+| Зангилаа дээрх **-** товч | Нээсэн хүүхдүүдийг буцааж хаана |
 | **N урсгал** (жишээ нь "5 урсгал") | Процесс олон thread-тэй (дан thread бол бичигдэхгүй) |
 | **Тасархай шугам**, дээд талд | Өвөг эцгийн гинж (`real_parent`), PID 1 хүртэл |
 | **Тасархай хайрцаг "N хүүхэд"** | 7 ба түүнээс олон навч хүүхдийг сүлжээнд багцалсан (6 баганатай) |
-| **Үргэлжилсэн шугам**, доош | Эцэг → хүү |
+| **Үргэлжилсэн шугам**, доош | Эцгээс хүү рүү |
 
 Доод талын зургуудаас: сонгогдсон `demo_root` бүдүүн цагаан хүрээтэй, `demo_stopped` саарал (T), `demo_zombie` улаан (Z), `demo_leaf_1/2` тасархай хүрээтэй, учир нь хүүхдийг нь асуугаагүй.
 
 ![Demo мод](../src/ui/screenshots/demo_tree.png)
 
-*Зураг 2. Demo мод. Дээр нь өвөг эцэг (systemd → … → python3), голд сонгосон `demo_root`, доор нь хүүхдүүд (S, S, T, S, Z).*
+*Зураг 2. Demo мод. Дээр нь өвөг эцэг (systemd-ээс python3 хүртэл), голд сонгосон `demo_root`, доор нь хүүхдүүд (S, S, T, S, Z).*
 
 #### B4.3 Өөрчлөлтийн тодруулга
 
@@ -245,21 +245,21 @@ python3 src/ui/server.py             # UI сервер → http://localhost:8000
 
 | Харагдах байдал | Утга | "Өөрчлөлт" мөр |
 |---|---|---|
-| **Ногоон** гэрэлтэлт + **"шинэ"** шошго | Шинэ процесс үүссэн | `+ demo_new_1 (PID) шинээр үүссэн` |
-| **Шар** гэрэлтэлт + `S→T` гэх мэт | Төлөв өөрчлөгдсөн | `~ demo_stopped (PID) S → T` |
-| **Улаан** chip | Процесс алга болсон | `− … (PID) алга болсон` |
+| **Ногоон** гэрэлтэлт, **"шинэ"** шошго | Шинэ процесс үүссэн | Процессын нэр, PID, "шинээр үүссэн" |
+| **Шар** гэрэлтэлт | Төлөв өөрчлөгдсөн (жишээ нь S-ээс T) | Процессын нэр, PID, хуучин ба шинэ төлөв |
+| **Улаан** chip | Процесс алга болсон | Процессын нэр, PID, "алга болсон" |
 | Өөрчлөлт байхгүй | | "Өмнөх шинэчлэлтээс хойш өөрчлөлтгүй." |
 
-⊕ / ⊖-ээр зангилаа нээх, хаах нь "шинэ процесс" гэж тооцогдохгүй.
+**+** / **-** товчоор зангилаа нээх, хаах нь "шинэ процесс" гэж тооцогдохгүй.
 
 #### B4.4 Дээд талын шошго ба мэдэгдлийн мөр
 
 | Харагдах байдал | Утга | Юу хийх |
 |---|---|---|
-| **● module loaded · 6.x.x** (ногоон) | Module бүрэн ажиллаж байна | Юу ч хийхгүй |
-| **● module: зөвхөн /proc/pid** (шар) + ℹ мөр | Module зөвхөн номын `/proc/pid`-тэй (`/proc/pid_tree` байхгүй). Command, pid, state болон `parent`/`child` мөрийг module-ээс авна. Uid, урсгал, өвөг эцгийг `/proc/<pid>/stat`-аас авна | Хэвийн. Багийн одоогийн `src/kmod/pid.c` ийм байдлаар ажиллана |
-| **● fallback (module биш)** (шар) + ⚠ мөр | Module-ийг ашиглаагүй | Тайланд ашиглахгүй. `sudo insmod src/kmod/pid.ko` хийгээд серверийг `--fallback`-гүй дахин эхлүүл |
-| **● module ачаалагдаагүй** (улаан) | `/proc/pid` алга | `sudo insmod src/kmod/pid.ko` |
+| **module loaded 6.x.x** шошго (ногоон) | Module бүрэн ажиллаж байна | Юу ч хийхгүй |
+| **module: зөвхөн /proc/pid** шошго (шар), мэдээллийн мөр | Module зөвхөн номын `/proc/pid`-тэй (`/proc/pid_tree` байхгүй). Command, pid, state болон `parent`/`child` мөрийг module-ээс авна. Uid, урсгал, өвөг эцгийг `/proc/<pid>/stat`-аас авна | Хэвийн. Багийн одоогийн `src/kmod/pid.c` ийм байдлаар ажиллана |
+| **fallback (module биш)** шошго (шар), анхааруулгын мөр | Module-ийг ашиглаагүй | Тайланд ашиглахгүй. `sudo insmod src/kmod/pid.ko` хийгээд серверийг `--fallback`-гүй дахин эхлүүл |
+| **module ачаалагдаагүй** шошго (улаан) | `/proc/pid` алга | `sudo insmod src/kmod/pid.ko` |
 | **Улаан banner** | Алдаа (§B7) | Мэдэгдлийн дагуу засна |
 
 ### B5. Үндсэн үйлдлүүд
@@ -272,23 +272,23 @@ python3 src/ui/server.py             # UI сервер → http://localhost:8000
 | Гүн (depth) өөрчлөх | "Хүү процессын гүн" хайрцагт 0–4. 0 нь зөвхөн шууд хүүхдүүд |
 | Автомат шинэчлэх | "Автомат шинэчлэх" тэмдэглээд 1 / 2 / 5 секунд сонгоно |
 | Өвөг эцгийг нэг мөр болгох | "Өвөг эцгийг товчлох" тэмдэглэнэ. Том мод самбарт багтана |
-| Өмнөх төлөвийг үзэх | Түүхэд ◀ ▶ эсвэл мөр дээр дарна. **Live руу буцах** товчоор одоогийн байдал руу очно |
-| Тайланд зураг авах | Түүхийн **⤓ PNG** (2×, Word / Teams-д шууд), **⤓ SVG**, бүх түүхийг **⤓ JSON** |
+| Өмнөх төлөвийг үзэх | Түүхийн өмнөх, дараах товч эсвэл мөр дээр дарна. **Live руу буцах** товчоор одоогийн байдал руу очно |
+| Тайланд зураг авах | Түүхийн **PNG** товч (2×, Word / Teams-д шууд), **SVG** товч, бүх түүхийг **JSON** товчоор татна |
 | Бүгдийг эхнээс нь | **Reset** |
 
 **Гарын товч (мод дээр, <kbd>Tab</kbd>-аар зангилаанд очсон үед):**
 
 | Товч | Үйлдэл |
 |---|---|
-| <kbd>↑</kbd> | Эцэг рүү |
-| <kbd>↓</kbd> | Эхний хүү рүү |
-| <kbd>←</kbd> <kbd>→</kbd> | Ах, дүү рүү |
+| Дээш сум | Эцэг рүү |
+| Доош сум | Эхний хүү рүү |
+| Зүүн, баруун сум | Ах, дүү рүү |
 | <kbd>Enter</kbd> | Тэр task-ийг сонгох |
-| <kbd>+</kbd> / <kbd>−</kbd> | Газар дээр нь нээх / хаах (⊕ / ⊖) |
+| <kbd>+</kbd> / <kbd>-</kbd> | Газар дээр нь нээх / хаах |
 
 ### B6. Жишээ
 
-#### Жишээ 1 — Номын интерфейсийг терминал болон UI-аас харах
+#### Жишээ 1. Номын интерфейсийг терминал болон UI-аас харах
 
 **Терминал дээр:**
 
@@ -310,9 +310,9 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 ![Терминал](images/term_book_example.png)
 
-*Зураг 3. Bare-metal терминал: `echo $$ > /proc/pid` — bash, эцэг `gnome-terminal-`, хүү `cat`; `echo 1 > /proc/pid` — systemd, эцэг `swapper/0`, эхний хүүхдүүд.*
+*Зураг 3. Bare-metal терминал: `echo $$ > /proc/pid` нь bash (эцэг `gnome-terminal-`, хүү `cat`); `echo 1 > /proc/pid` нь systemd (эцэг `swapper/0`, эхний хүүхдүүд).*
 
-#### Жишээ 2 — Шинэ процесс мод дээр гарах (TASKS.md-ийн тест 5)
+#### Жишээ 2. Шинэ процесс мод дээр гарах (TASKS.md-ийн тест 5)
 
 1. **Demo мод үүсгэх** товчийг дарна. Мод `demo_root` дор 5 хүүхэдтэй гарна (зураг 1).
 2. Зүүн талд гарсан "Туршилт удирдах" хэсгээс **+ Хүү процесс** дарна.
@@ -323,57 +323,57 @@ child = [...] pid = [...] state = [...]     # хүү процесс бүрт н�
 
 ![fork](../src/ui/screenshots/step2_spawn.png)
 
-*Зураг 4. `demo_new_1` шинээр үүссэн (ногоон), `demo_busy` S→R болсон (шар).*
+*Зураг 4. `demo_new_1` шинээр үүссэн (ногоон), `demo_busy` S-ээс R болсон (шар).*
 
-#### Жишээ 3 — Zombie процесс үүсгэж, арилгах
+#### Жишээ 3. Zombie процесс үүсгэж, арилгах
 
 1. Demo мод ажиллаж байхад `demo_new_1` дээр дарж сонгоно (зүүн талд "Сонгосон процесс: demo_new_1" гарна).
-2. **KILL** дарна. Процесс дуусна, гэвч эцэг нь `wait()` хийгээгүй тул төлөв **S → Z** болно. Зангилаа улаан болж, "Өөрчлөлт" мөрөнд `S → Z` гарна.
-3. Зүүн талын **wait() — цэвэрлэх** товчийг дарна. Zombie алга болно (`− … алга болсон`).
+2. **KILL** дарна. Процесс дуусна, гэвч эцэг нь `wait()` хийгээгүй тул төлөв **S-ээс Z** болно. Зангилаа улаан болж, "Өөрчлөлт" мөрөнд энэ өөрчлөлт гарна.
+3. Зүүн талын **wait()** (цэвэрлэх) товчийг дарна. Zombie алга болж, "алга болсон" гэж тэмдэглэгдэнэ.
 
 > **KILL**, **STOP**, **CONT** товчнууд зөвхөн demo процесст ажиллана. `demo_root` эсвэл системийн жинхэнэ процесс (жишээ нь PID 1) сонгосон бол идэвхгүй. Энэ нь санамсаргүйгээр системийн процессыг зогсоохоос хамгаална.
 
 ![zombie](../src/ui/screenshots/step5_zombie.png)
 
-*Зураг 5. `demo_new_1` S→Z болсон: эцэг нь `wait()` хийгээгүй.*
+*Зураг 5. `demo_new_1` S-ээс Z болсон: эцэг нь `wait()` хийгээгүй.*
 
-#### Жишээ 4 — Процессын амьдралын мөчлөгийг автоматаар үзэх
+#### Жишээ 4. Процессын амьдралын мөчлөгийг автоматаар үзэх
 
-1. **▶ Сценари: процессын амьдралын мөчлөг** дарна.
-2. UI 6 алхмыг (~9 секунд) өөрөө гүйцэтгэнэ: `fork` → `SIGSTOP` (S→T) → `SIGCONT` (T→S) → `SIGTERM` (S→Z) → `wait()` (Z алга болно).
-3. Дуусмагц "Түүх"-д ◀ ▶-ээр алхам тутмыг тайлбартай нь эргэн харна.
+1. **Сценари: процессын амьдралын мөчлөг** товчийг дарна.
+2. UI 6 алхмыг (~9 секунд) өөрөө гүйцэтгэнэ: `fork`, `SIGSTOP` (S-ээс T), `SIGCONT` (T-ээс S), `SIGTERM` (S-ээс Z), `wait()` (Z алга болно).
+3. Дуусмагц "Түүх"-д өмнөх, дараах товчоор алхам тутмыг тайлбартай нь эргэн харна.
 
 ![Түүх](../src/ui/screenshots/step6_history_calls.png)
 
-*Зураг 6. Түүх, тайлбар, Module дуудлагын лог: `write /proc/pid` → `read /proc/pid` → `read /proc/pid_tree`.*
+*Зураг 6. Түүх, тайлбар, Module дуудлагын лог: `write /proc/pid`, `read /proc/pid`, `read /proc/pid_tree` дараалал.*
 
 ![Bare-metal түүх](images/ui_baremetal_history.png)
 
-*Зураг 7. Ижил сценари bare-metal дээр: Түүхэнд SIGSTOP → SIGCONT → SIGTERM (zombie) → `wait()` алхмууд дараалан бичигдсэн.*
+*Зураг 7. Ижил сценари bare-metal дээр: Түүхэнд SIGSTOP, SIGCONT, SIGTERM (zombie), `wait()` алхмууд дараалан бичигдсэн.*
 
-#### Жишээ 5 — Газар дээр нь нээх (⊕ / ⊖)
+#### Жишээ 5. Газар дээр нь нээх, хаах
 
 1. Гүнийг `0` болгож **Demo мод үүсгэх** дарна.
-2. `demo_sleeper` зангилааны **⊕** дарна. Сонголт `demo_root` хэвээр үлдэж, `demo_sleeper`-ийн доор `demo_leaf_1`, `demo_leaf_2` гарна.
+2. `demo_sleeper` зангилаан дээрх **+** товчийг дарна. Сонголт `demo_root` хэвээр үлдэж, `demo_sleeper`-ийн доор `demo_leaf_1`, `demo_leaf_2` гарна.
 3. Түүхэнд "▸ demo_sleeper (PID) нээв" гэж бичигдэнэ.
-4. **⊖** дарвал буцаж хаагдана.
+4. **-** товчийг дарвал буцаж хаагдана.
 
-Zombie зангилаа дээр ⊕ гарахгүй, учир нь zombie-д хүүхэд байхгүй.
+Zombie зангилаа дээр **+** товч гарахгүй, учир нь zombie-д хүүхэд байхгүй.
 
 ![Газар дээр нь нээх](../src/ui/screenshots/expand_in_place.png)
 
-*Зураг 8. `demo_sleeper`-ийг ⊕-оор нээсэн байдал: сонголт `demo_root` хэвээр, доор нь `demo_leaf_1`, `demo_leaf_2` гарсан.*
+*Зураг 8. `demo_sleeper`-ийг **+** товчоор нээсэн байдал: сонголт `demo_root` хэвээр, доор нь `demo_leaf_1`, `demo_leaf_2` гарсан.*
 
 ### B7. Түгээмэл алдаа ба шийдэл
 
 | Мэдэгдэл / шинж тэмдэг | Шалтгаан | Шийдэл |
 |---|---|---|
-| **● module ачаалагдаагүй** (улаан шошго, 503) | `/proc/pid` үүсээгүй | `sudo insmod src/kmod/pid.ko`. Build хийгээгүй бол `cd src/kmod && make` |
+| **module ачаалагдаагүй** (улаан шошго, 503) | `/proc/pid` үүсээгүй | `sudo insmod src/kmod/pid.ko`. Build хийгээгүй бол `cd src/kmod && make` |
 | `insmod: ERROR: could not insert module … Operation not permitted` | `sudo` байхгүй | `sudo`-той ажиллуулна |
 | `make` нь `linux-headers` / build хавтас олдсонгүй гэнэ | Ажиллаж буй kernel-ийн header байхгүй | `sudo apt install linux-headers-$(uname -r)`. WSL2 дээр §A-ийн заавар |
 | **Буруу оролт 'abc'** (400) | PID зөвхөн цифр байх ёстой | `abc`, `-5`, `1.5`, хоосон оролт хүлээн авагдахгүй. Зөвхөн эерэг бүхэл тоо бичнэ |
 | **PID … олдсонгүй** (404) | Процесс дууссан эсвэл байхгүй | Жагсаалтаас байгаа PID сонгоно. Module энэ үед 0 байт буцаадаг (номын шаардлага) |
-| **/proc/pid-ийн гаралт номын форматтай таарахгүй** (502) | Module буруу формат хэвлэсэн | `python3 src/ui/contract_check.py` ажиллуулж ✖ болсон шалгалтыг харна. Module-ийн хариуцагчид мэдэгдэнэ |
+| **/proc/pid-ийн гаралт номын форматтай таарахгүй** (502) | Module буруу формат хэвлэсэн | `python3 src/ui/contract_check.py` ажиллуулж алдаатай гэж гарсан шалгалтыг харна. Module-ийн хариуцагчид мэдэгдэнэ |
 | **Сервертэй холбогдож чадсангүй** | Сервер зогссон эсвэл порт буруу | `python3 src/ui/server.py` ажиллаж байгаа эсэх, браузерийн хаяг дахь порт зөв эсэхийг шалгана. Түр сүлжээний алдаа бол UI нэг удаа өөрөө дахин оролдож, өмнөх дүрслэлийг хадгална |
 | `Address already in use` | 8000 порт эзлэгдсэн | `python3 src/ui/server.py --port 9000` |
 | STOP / CONT / KILL идэвхгүй | Сонгосон процесс demo биш, эсвэл `demo_root` | Demo мод үүсгээд `demo_root`-ийн **хүүхэд** дээр дарна |
