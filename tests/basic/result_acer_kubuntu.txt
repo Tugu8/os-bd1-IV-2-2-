@@ -1,0 +1,23 @@
+=== Basic tests for /proc/pid ===
+
+[INFO] /proc/pid exists. Ready to run tests.
+
+Test 1: Current Bash process (PID 8689)
+[PASS] Current process information is returned
+
+Test 2: PID 1
+[PASS] PID 1 information is returned
+
+Test 3: Non-existent PID (999999)
+[PASS] Non-existent PID returns no information
+
+Test 4: Parent-child process relationship
+[PASS] Child process is listed under its parent
+
+Test 5: Kernel thread PID
+Kernel thread PID: 2
+[PASS] Kernel thread information is returned
+
+=== Test Summary ===
+Total passed: 5
+Total failed: 0

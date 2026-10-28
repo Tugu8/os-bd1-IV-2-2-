@@ -1,0 +1,49 @@
+=== Boundary and error tests for /proc/pid ===
+
+[INFO] /proc/pid is ready for boundary testing.
+
+Test 1: Alphabetic input (abc)
+Actual error:
+abc
+/proc/pid: Invalid argument (os error 22)
+[PASS] Alphabetic input is rejected
+
+Test 2: Negative PID (-5)
+Actual error:
+-5
+/proc/pid: Invalid argument (os error 22)
+[PASS] Negative PID is rejected
+
+Test 3: Empty input
+Actual error:
+
+/proc/pid: Invalid argument (os error 22)
+[PASS] Empty input is rejected
+
+Test 4: Zero PID (0)
+Actual error:
+0
+/proc/pid: Invalid argument (os error 22)
+[PASS] Zero PID is rejected
+
+Test 5: Very large PID (99999999)
+Actual error:
+99999999
+/proc/pid: Invalid argument (os error 22)
+[PASS] Very large PID is rejected
+
+Test 6: Integer overflow
+Actual error:
+999999999999999999999999999999
+/proc/pid: Numerical result out of range (os error 34)
+[PASS] Integer overflow input is rejected
+
+Test 7: Input longer than 32 bytes
+Actual error:
+123456789012345678901234567890123
+/proc/pid: Invalid argument (os error 22)
+[PASS] Input longer than 32 bytes is rejected
+
+=== Boundary Test Summary ===
+Passed: 7
+Failed: 0
