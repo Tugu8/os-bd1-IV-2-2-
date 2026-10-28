@@ -172,7 +172,7 @@ PREAMBLE = r"""\documentclass[11pt,a4paper]{article}
   backgroundcolor=\color{gray!6}, columns=fullflexible, keepspaces=true, breaklines=true,
   extendedchars=true, literate={→}{{$\rightarrow$}}1}
 \usepackage{fvextra}
-\fvset{frame=single, framerule=0.3pt, rulecolor=\color{gray!60}, fontsize=\small, breaklines=true}
+\fvset{frame=single, framerule=0.3pt, rulecolor=\color{gray!60}, fontsize=\small, breaklines=true, breaksymbolleft={}}
 \DeclareRobustCommand{\code}[1]{{\ttfamily\detokenize{#1}}}
 \newcommand{\kbd}[1]{\tikz[baseline=(k.base)]\node[draw,rounded corners=1.5pt,inner sep=1.5pt,font=\small\ttfamily](k){#1};}
 \newtcolorbox{note}{colback=blue!3, colframe=blue!30!black, boxrule=0.3pt, left=4pt, right=4pt, top=2pt, bottom=2pt}
@@ -194,8 +194,8 @@ def main(src, dst):
     head = (r"\begin{titlepage}\centering\vspace*{0.4cm}"
             r"{\large ШИНЖЛЭХ УХААН ТЕХНОЛОГИЙН ИХ СУРГУУЛЬ\\ Мэдээлэл, Холбооны Технологийн Сургууль\par}\vspace{0.6cm}"
             r"\includegraphics[height=2.8cm]{" + logo + r"}\par\vspace{0.8cm}"
-            r"{\large F.CSM302 Үйлдлийн систем — Бие даалт 1\par}\vspace{1cm}"
-            r"{\Huge\bfseries " + inline(title) + r"\par}\vspace{0.8cm}{\Large IV-2-2 · Linux Kernel Module for Task Information\par}"
+            r"{\large F.CSM302 Үйлдлийн систем, Бие даалт 1\par}\vspace{1cm}"
+            r"{\Huge\bfseries " + inline(title) + r"\par}\vspace{0.8cm}{\Large IV-2-2: Linux Kernel Module for Task Information\par}"
             r"\vspace{1cm}{\large Хэрэглэгчийн ба operational заавар\par}\vfill"
             r"\url{https://github.com/Tugu8/os-bd1-IV-2-2-}\par\vspace{0.5cm}{2026 оны 10-р сар\par}\end{titlepage}"
             "\n\\tableofcontents\n\\newpage\n")

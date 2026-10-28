@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-28
+
+### Өөрчилсөн
+- **report** (B242270047, PR #22): тайлангаас ✔/⚠/✖ тэмдэг, сум (→, ↔ гэх мэт), UI-ийн товчны дүрс, урт зураасыг (—) хасаж, энгийн үг, цэг таслалаар сольсон. PASS-ийн өнгийг хассан. Агуулгыг шинэ хуудаснаас эхлүүлсэн.
+- **docs** (B242270047, PR #22): Manual-аас мөн ✔/⚠/✖, сум, ⊕/⊖/▶/◀ дүрс, урт зураасыг хасаж, UI-ийн товчийг нэрээр нь тайлбарласан; Manual-ийн нүүрний бичвэрийг (`md2tex.py`) мөн зассан. Manual A2-д `v1.0.2`.
+
 ## [1.0.1] - 2026-10-28
 
 ### Нэмсэн
@@ -42,6 +48,7 @@
 - **docs**: шүүмжлэх багийн код II-4-5 → **IV-2-5** (Topic and Peer Review Allocation хүснэгтийн дагуу).
 - **kmod** (B190910014, PR #4): `task->pid` → `task_pid_vnr()` — PID namespace (WSL2, контейнер)-д бичсэн PID-тэй ижил дугаар хэвлэнэ.
 
-[Unreleased]: https://github.com/Tugu8/os-bd1-IV-2-2-/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Tugu8/os-bd1-IV-2-2-/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/Tugu8/os-bd1-IV-2-2-/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Tugu8/os-bd1-IV-2-2-/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Tugu8/os-bd1-IV-2-2-/releases/tag/v1.0.0

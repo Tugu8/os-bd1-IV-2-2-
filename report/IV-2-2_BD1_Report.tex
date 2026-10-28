@@ -1,4 +1,4 @@
-% IV-2-2 · БД1 тайлан. Хөрвүүлэх:  cd report && xelatex IV-2-2_BD1_Report.tex (2 удаа — агуулга)
+% IV-2-2 БД1 тайлан. Хөрвүүлэх: cd report && xelatex IV-2-2_BD1_Report.tex (агуулгын хуудасны дугаарт 2 удаа)
 % Шаардлага: texlive-xetex, fonts-dejavu (Ubuntu: sudo apt install texlive-xetex texlive-lang-cyrillic fonts-dejavu)
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec}
@@ -40,14 +40,10 @@
 }
 \newcommand{\cyrcmt}[1]{\textcolor{green!45!black}{\ttfamily\small #1}}
 \lstdefinestyle{out}{language={}, backgroundcolor=\color{black!3}}
-\newfontfamily\symfont{DejaVu Sans}
-\newcommand{\ok}{{\symfont\textcolor{green!50!black}{✔}}}
-\newcommand{\warn}{{\symfont\textcolor{orange!80!black}{⚠}}}
-\newcommand{\no}{{\symfont\textcolor{red!70!black}{✖}}}
 \renewcommand{\contentsname}{Агуулга}
 \renewcommand{\figurename}{Зураг}
 \renewcommand{\tablename}{Хүснэгт}
-\newcommand{\pass}{\textcolor{green!50!black}{\textbf{PASS}}}
+\newcommand{\pass}{PASS}
 \DeclareRobustCommand{\code}[1]{\texttt{\detokenize{#1}}}
 
 \begin{document}
@@ -96,8 +92,9 @@
 
 \textbf{Туршилт.} Номын жишээ (bash, PID 1), байхгүй PID, 7 төрлийн буруу оролт, kernel thread, хүү процесс үүсгэх тестүүдийг bare-metal Ubuntu 24.04 (kernel 7.0.0-34), хоёр дахь компьютер дээрх Kubuntu 26.04.1 (kernel 7.0.0-38, Secure Boot асаалттай) болон хөгжүүлэлтийн WSL2 (kernel 6.6.87.2) дээр ажиллуулсан.
 
-\textbf{Гол үр дүн.} Bash скриптийн 12 тест (Linux суусан хоёр компьютер дээр тус бүр 12/12; WSL2-д kernel thread тест алгасагдсан), 2-р бүлгийн бэлтгэл module-ийн 9 шалгалт, UI-ийн 24 API ба 12 байрлалын тест бүгд давсан; module ↔ UI интерфейсийн шалгагч 17 \ok, 0 \no{}. Туршилтаар PID namespace-ийн алдаа (\code{task->pid} → \code{task_pid_vnr}) илэрч засагдсан.
+\textbf{Гол үр дүн.} Bash скриптийн 12 тест (Linux суусан хоёр компьютер дээр тус бүр 12/12; WSL2-д kernel thread тест алгасагдсан), 2-р бүлгийн бэлтгэл module-ийн 9 шалгалт, UI-ийн 24 API ба 12 байрлалын тест бүгд давсан; module ба UI-ийн хоорондын интерфейсийн шалгагч алдаа илрүүлээгүй. Туршилтаар PID namespace-ийн алдаа илэрч, \code{task->pid}-ийг \code{task_pid_vnr}-ээр сольж зассан.
 
+\newpage
 \tableofcontents
 \newpage
 
@@ -106,14 +103,14 @@
 
 \textbf{Зорилго.} Linux kernel-ийн доторх процессын өгөгдлийн бүтцийг (\code{task_struct}, процессын мод) \code{/proc} файлын системээр дамжуулан хэрэглэгчид гаргаж, түүнийг интерактив мод хэлбэрээр дүрслэх.
 
-\textbf{Ач холбогдол.} Энэ төсөл нь онолын хэд хэдэн ойлголтыг бодитоор холбоно: процесс ба PCB (OSC §3.1), процесс үүсгэх ба процессын мод (§3.3, \code{fork}, \code{wait}, zombie), kernel ба user space-ийн хил (\code{copy_from_user}), kernel module (2-р бүлэг), зэрэгцээ хандалт ба синхрончлол (RCU, мутекс — 6-р бүлэг).
+\textbf{Ач холбогдол.} Энэ төсөл нь онолын хэд хэдэн ойлголтыг бодитоор холбоно: процесс ба PCB (OSC §3.1), процесс үүсгэх ба процессын мод (§3.3, \code{fork}, \code{wait}, zombie), kernel ба user space-ийн хил (\code{copy_from_user}), kernel module (2-р бүлэг), зэрэгцээ хандалт ба синхрончлол (RCU, мутекс; 6-р бүлэг).
 
 \textbf{Хамрах хүрээ.}
 \begin{itemize}[nosep]
-  \item \code{src/prereq/} — 2-р бүлгийн бэлтгэл module-ууд: \code{simple}, \code{/proc/hello}, \code{/proc/jiffies}, \code{/proc/seconds}.
-  \item \code{src/kmod/pid.c} — үндсэн module: \code{/proc/pid} write ба read, parent/children өргөтгөл.
-  \item \code{src/ui/} — task hierarchy вэб UI, туршилтын процессын мод, module ↔ UI интерфейсийн шалгагч.
-  \item \code{tests/} — үндсэн ба захын тест; \code{docs/Manual.md} — хэрэглэгчийн ба operational заавар.
+  \item \code{src/prereq/}: 2-р бүлгийн бэлтгэл module-ууд: \code{simple}, \code{/proc/hello}, \code{/proc/jiffies}, \code{/proc/seconds}.
+  \item \code{src/kmod/pid.c}: үндсэн module, \code{/proc/pid} write ба read, parent/children өргөтгөл.
+  \item \code{src/ui/}: task hierarchy вэб UI, туршилтын процессын мод, module ба UI-ийн интерфейсийн шалгагч.
+  \item \code{tests/}: үндсэн ба захын тест; \code{docs/Manual.md}: хэрэглэгчийн ба operational заавар.
 \end{itemize}
 Хамрахгүй: kernel-ээс процессын үүсэл/дуусгаврыг эвентээр мэдээлэх (UI тогтмол хугацаанд асуудаг), \code{/proc/pid}-ийг олон хэрэглэгч зэрэг ашиглах.
 
@@ -146,7 +143,7 @@ command = [bash] pid = [1395] state = [1]
 \code{/proc/pid} үүсгэх & \code{proc_create("pid", 0666, ...)}, \code{struct proc_ops} (\code{src/kmod/pid.c}) & Хэрэгжсэн\\
 PID бичих (write) & \code{kmalloc} + \code{copy_from_user} + \code{kstrtol}, 1..\code{PID_MAX_LIMIT} шалгалт & Хэрэгжсэн\\
 command, pid, state хэвлэх (read) & \code{pid_task(find_vpid())}, \code{seq_printf}, номын яг формат & Хэрэгжсэн\\
-Хүчингүй PID → 0 байт & \code{task == NULL} үед юу ч хэвлэхгүй & Хэрэгжсэн\\
+Хүчингүй PID үед 0 байт & \code{task == NULL} үед юу ч хэвлэхгүй & Хэрэгжсэн\\
 Parent, child (task hierarchy) & \code{real_parent}, \code{children} жагсаалт (\code{parent =}, \code{child =} мөр) & Нэмэлт\\
 Өөр PID, тохиргоогоор турших & UI-ийн PID талбар, гүн 0–4, demo мод, автомат шинэчлэлт & Хэрэгжсэн\\
 Буруу, захын оролт & \code{-EINVAL}/\code{-ERANGE}; UI улаан мэдэгдэл; \code{tests/boundary} (7) & Хэрэгжсэн\\
@@ -169,10 +166,10 @@ Kernel процесс бүрийг \emph{process control block} буюу Linux-�
 \textrm{\textbf{Талбар}} & \textbf{Утга}\\
 \midrule
 comm & Гүйцэтгэх файлын нэр (16 байт хүртэл)\\
-\_\_state & Төлөвийн битийн маск: 0 — running, 1 — \code{TASK_INTERRUPTIBLE}, 2 — \code{TASK_UNINTERRUPTIBLE}, 4 — \code{__TASK_STOPPED}; kernel 5.14-өөс \code{state}-ийн оронд\\
+\_\_state & Төлөвийн битийн маск: 0 = running, 1 = \code{TASK_INTERRUPTIBLE}, 2 = \code{TASK_UNINTERRUPTIBLE}, 4 = \code{__TASK_STOPPED}; kernel 5.14-өөс \code{state}-ийн оронд\\
 real\_parent & Процессыг \code{fork} хийсэн эцэг (эцэг нь дуусвал init/subreaper руу шилжинэ)\\
 children, sibling & Хүүхдүүдийн давхар холбоост жагсаалт: эцгийн \code{children} толгой, хүүхэд бүрийн \code{sibling} зангилаа\\
-pid, tgid & Урсгалын ба процессын (thread group) дугаар — \emph{global} namespace-д\\
+pid, tgid & Урсгалын ба процессын (thread group) дугаар, \emph{global} namespace-д\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -187,7 +184,7 @@ Linux-д процесс бүр (PID 0-ээс бусад) нэг эцэгтэй �
 User space-ийн заагч kernel-д хүчингүй эсвэл хортой байж болох тул шууд хандахгүй: \code{copy_from_user()} хаягийг шалгаж хуулна. Kernel санах ойг \code{kmalloc(…, GFP_KERNEL)}-ээр авч, бүх замд \code{kfree()} хийнэ.
 
 \subsection{Зэрэгцээ хандалт: RCU ба мутекс}
-Процессын жагсаалт байнга өөрчлөгддөг. \code{find_vpid}, \code{pid_task}, \code{real_parent}, \code{children}-ийг \code{rcu_read_lock()} дор уншиж, уншиж байх хооронд task чөлөөлөгдөхөөс сэргийлнэ (read-copy-update, OSC §6.7-ийн уншигч/бичигчийн хувилбар). Module сүүлд бичсэн PID-ийг нэг глобал \code{l_pid}-д хадгалдаг тул ``бичих → унших'' нь хоёр тусдаа систем дуудалт; хоёр процесс зэрэг ажиллавал \emph{уралдааны нөхцөл} үүснэ. UI сервер үүнийг эгзэгтэй муж болгон мутексээр хамгаална (§5.3).
+Процессын жагсаалт байнга өөрчлөгддөг. \code{find_vpid}, \code{pid_task}, \code{real_parent}, \code{children}-ийг \code{rcu_read_lock()} дор уншиж, уншиж байх хооронд task чөлөөлөгдөхөөс сэргийлнэ (read-copy-update, OSC §6.7-ийн уншигч/бичигчийн хувилбар). Module сүүлд бичсэн PID-ийг нэг глобал \code{l_pid}-д хадгалдаг тул ``бичих, дараа нь унших'' нь хоёр тусдаа систем дуудалт; хоёр процесс зэрэг ажиллавал \emph{уралдааны нөхцөл} үүснэ. UI сервер үүнийг эгзэгтэй муж болгон мутексээр хамгаална (§5.3).
 
 \subsection{PID namespace}
 Контейнер, WSL2-д процесс өөрийн PID namespace-тэй байж, нэг task өөр namespace-д өөр дугаартай байна. \code{find_vpid(n)} нь \emph{дуудагчийн} namespace-д хайдаг тул хэвлэх PID-ийг мөн дуудагчийн namespace-ээр (\code{task_pid_vnr}) гаргах хэрэгтэй.
@@ -210,13 +207,13 @@ User space-ийн заагч kernel-д хүчингүй эсвэл хортой 
   \draw[arr] (br) -- node[lbl, above]{GET /api/task\\?pid=N} (srv);
   \draw[arr] (srv) -- node[lbl, above]{write(N)\\read()} (proc);
   \draw[arr] (proc) -- node[lbl, right]{kernel\\дуудалт} (mod);
-  \draw[arr] (mod) -- node[lbl, below=2pt]{rcu\_read\_lock\\find\_vpid → pid\_task} (ts);
+  \draw[arr] (mod) -- node[lbl, below=2pt]{rcu\_read\_lock\\find\_vpid, pid\_task} (ts);
   \draw[arr, dashed] (srv.south west) -- node[lbl, left, pos=0.4]{uid, урсгал} (pf.north east);
   \begin{scope}[on background layer]
     \node[draw, dashed, gray, fit=(mod)(ts), inner sep=8pt, label={[font=\scriptsize, gray]below:kernel space}] {};
   \end{scope}
 \end{tikzpicture}}
-\caption{Компонент ба өгөгдлийн урсгал. Тасархай — procfs-оос нэмэлт мэдээлэл.}
+\caption{Компонент ба өгөгдлийн урсгал. Тасархай шугам нь procfs-оос авах нэмэлт мэдээлэл.}
 \end{figure}
 
 \begin{center}
@@ -224,9 +221,9 @@ User space-ийн заагч kernel-д хүчингүй эсвэл хортой 
 \toprule
 \textbf{Компонент} & \textbf{Үүрэг}\\
 \midrule
-\code{pid.ko} & \code{/proc/pid} үүсгэнэ; write — PID шалгаж хадгална; read — task, эцэг, хүүхдүүдийг хэвлэнэ\\
+\code{pid.ko} & \code{/proc/pid} үүсгэнэ; write үед PID-ийг шалгаж хадгална; read үед task, эцэг, хүүхдүүдийг хэвлэнэ\\
 \code{server.py} & HTTP + JSON API; оролт шалгах (зөвхөн цифр, 0–4194304); write+read-ийг мутекс дотор; хүүхэд бүрийг дахин асууж \code{depth} түвшний мод үүсгэнэ (≤ 400 зангилаа)\\
-Backend горим & \code{module} (\code{/proc/pid_tree}-тэй), \code{book} (зөвхөн \code{/proc/pid} — манай module), \code{fallback} (module-гүй, тодорхой тэмдэглэнэ)\\
+Backend горим & \code{module} (\code{/proc/pid_tree}-тэй), \code{book} (зөвхөн манай module-ийн \code{/proc/pid}), \code{fallback} (module-гүй, тодорхой тэмдэглэнэ)\\
 \code{app.js}, \code{tree.js} & SVG мод (tidy tree, олон навчийг сүлжээ), өөрчлөлт харьцуулах, түүх, туршилт удирдах, экспорт\\
 \code{demo_tree.py} & Мэдэгдэж буй бүтэцтэй туршилтын процессын мод (S, R, T, Z, 5 урсгалтай); signal-ийг зөвхөн энэ бүлэгт\\
 \code{contract_check.py} & Module-ийн гаралтыг UI-ийн задлагчтай тулгах 18 шалгалт\\
@@ -234,7 +231,7 @@ Backend горим & \code{module} (\code{/proc/pid_tree}-тэй), \code{book} (
 \end{tabular}
 \end{center}
 
-\textbf{Гаралтын формат (module ↔ UI гэрээ).} Эхний мөр нь номын яг формат; дараагийн мөрүүд нь hierarchy-ийн өргөтгөл. Байхгүй PID бол 0 байт.
+\textbf{Гаралтын формат (module ба UI-ийн гэрээ).} Эхний мөр нь номын яг формат; дараагийн мөрүүд нь hierarchy-ийн өргөтгөл. Байхгүй PID бол 0 байт.
 \begin{lstlisting}[style=out]
 command = [bash] pid = [5090] state = [1]
 parent = [bash] ppid = [5084]
@@ -245,12 +242,12 @@ child = [cat] pid = [5108] state = [0]
 %================================================================ 5
 \section{Хэрэгжилт}
 
-Хэл ба сан: kernel module — C (Linux kernel API, gcc), UI — Python 3 стандарт сан (\code{http.server}, \code{threading}) ба vanilla HTML/CSS/JavaScript (SVG). Гадны сан ашиглаагүй.
+Хэл ба сан: kernel module нь C (Linux kernel API, gcc), UI нь Python 3 стандарт сан (\code{http.server}, \code{threading}) ба vanilla HTML/CSS/JavaScript (SVG). Гадны сан ашиглаагүй.
 
 \subsection{Бэлтгэл module-ууд (\code{src/prereq/})}
-2-р бүлгийн Programming Project: \code{simple.c} ачаалах/буулгахад \code{dmesg}-д \code{GOLDEN_RATIO_PRIME}, \code{gcd(3300, 24) = 12}, \code{jiffies}, \code{HZ}; \code{hello.c} — \code{/proc/hello}; \code{jiffies.c} — одоогийн \code{jiffies}; \code{seconds.c} — ачаалснаас хойших секунд \code{(jiffies - start)/HZ}. Бүгд \code{proc_ops} + \code{seq_file} загвартай — үндсэн module-ийн суурь.
+2-р бүлгийн Programming Project: \code{simple.c} ачаалах/буулгахад \code{dmesg}-д \code{GOLDEN_RATIO_PRIME}, \code{gcd(3300, 24) = 12}, \code{jiffies}, \code{HZ}; \code{hello.c} нь \code{/proc/hello}, \code{jiffies.c} нь одоогийн \code{jiffies}, \code{seconds.c} нь ачаалснаас хойших секундыг (\code{(jiffies - start)/HZ}) харуулна. Бүгд \code{proc_ops} + \code{seq_file} загвартай бөгөөд үндсэн module-ийн суурь болсон.
 
-\subsection{Kernel module — write}
+\subsection{Kernel module: write}
 \begin{lstlisting}
 if (count == 0 || count > MAX_INPUT_LEN)          /* MAX_INPUT_LEN = 32 */
         return -EINVAL;
@@ -273,7 +270,7 @@ return count;
 \end{lstlisting}
 Номын skeleton-оос ялгаа: оролтын урт хязгаартай; \code{sscanf}-ийн оронд хатуу \code{kstrtol}; 0, сөрөг, \code{PID_MAX_LIMIT}-ээс их утгыг татгалзана; алдаа гарвал өмнөх PID хэвээр.
 
-\subsection{Kernel module — read}
+\subsection{Kernel module: read}
 \begin{lstlisting}
 rcu_read_lock();
 task = pid_task(find_vpid(l_pid), PIDTYPE_PID);
@@ -305,13 +302,13 @@ rcu_read_unlock();
 \end{center}
 
 \subsection{UI сервер}
-\textbf{Мутекс.} Module нэг глобал PID-тэй тул хүсэлт бүрийн ``write → read''-ийг \code{threading.Lock}-оор нэг эгзэгтэй муж болгоно; тест: 2 урсгал × 15 зэрэг хүсэлт — 30/30 зөв PID.
+\textbf{Мутекс.} Module нэг глобал PID-тэй тул хүсэлт бүрийн ``write, дараа нь read''-ийг \code{threading.Lock}-оор нэг эгзэгтэй муж болгоно; 2 урсгалаас тус бүр 15 хүсэлт зэрэг илгээхэд 30/30 зөв PID буцсан.
 
 \textbf{Мод байгуулах.} \code{build_tree()} сонгосон PID-ийг асууж, хүүхэд бүрийг \code{depth} түвшин хүртэл дахин асууна (хүүхэд бүрд 1 module асуулга). \code{book} горимд module-ийн \code{child} мөрүүдээс хүүхдийн жагсаалт, \code{/proc/<pid>/stat}-аас uid, урсгалын тоо, PID 1 хүртэлх өвөг эцгийн гинжийг авна. Module хэвлэсэн PID бичсэнээс өөр бол (global PID) UI анхааруулга гаргаж procfs-оор үргэлжилнэ.
 
-\textbf{Дүрслэл.} Төлөвийн өнгө: R ногоон, S цэнхэр, D улбар шар, T саарал, Z улаан, I цайвар. Шинэчлэлт бүрийг өмнөхтэй харьцуулж шинэ процесс (ногоон), төлөв өөрчлөгдсөн (шар, ``S→T''), алга болсон (улаан) гэж тодруулна; 50 snapshot-ийн түүх ◀ ▶. Тасархай зангилааг ⊕-оор газар дээр нь нээнэ; гарын товчоор (↑↓←→, Enter, +/−) удирдана; JSON/SVG/PNG экспорт.
+\textbf{Дүрслэл.} Төлөвийн өнгө: R ногоон, S цэнхэр, D улбар шар, T саарал, Z улаан, I цайвар. Шинэчлэлт бүрийг өмнөхтэй харьцуулж шинэ процесс (ногоон), төлөв өөрчлөгдсөн (шар, жишээ нь S-ээс T), алга болсон (улаан) гэж тодруулна; сүүлийн 50 snapshot-ийн түүхийг ухарч, урагшилж харна. Тасархай зангилааг нэмэх товчоор газар дээр нь нээнэ; сум, Enter, +/- товчоор удирдана; JSON/SVG/PNG экспорт.
 
-\textbf{Туршилтын мод.} \code{demo_tree.py} нь тусдаа процессын бүлэгт \code{demo_root} → sleeper (2 ач), busy, stopped (T), threads (5 урсгал), zombie (Z) үүсгэнэ. UI-аас fork, zombie, \code{wait()}, STOP/CONT/TERM — зөвхөн энэ бүлэгт (бусад PID → 403).
+\textbf{Туршилтын мод.} \code{demo_tree.py} нь тусдаа процессын бүлэгт \code{demo_root} дор sleeper (2 ач), busy, stopped (T), threads (5 урсгал), zombie (Z) үүсгэнэ. UI-аас fork, zombie, \code{wait()}, STOP/CONT/TERM үйлдлүүд зөвхөн энэ бүлэгт ажиллана (бусад PID-д 403 буцаана).
 
 \subsection{GitHub дээрх ажиллагаа}
 Код \url{https://github.com/Tugu8/os-bd1-IV-2-2-} repository-д байрлана. \code{main} branch руу шууд push хийгээгүй: гишүүн бүр өөрийн fork эсвэл branch дээр ажиллаж, Pull Request (PR) нээж merge хийсэн (\code{CONTRIBUTING.md}). Commit мессежийг \code{kmod:}, \code{ui:}, \code{docs:}, \code{tests:}, \code{report:} гэх мэт угтвартай бичсэн.
@@ -359,11 +356,11 @@ Kernel module нь сурах бичгийн Programming Project-ийн skeleton
 \midrule
 PID (талбар, жагсаалт, зангилаа дээр дарах) & Номын мөр, task мэдээлэл, өвөг эцгийн гинж PID 1 хүртэл, хүүхдүүд\\
 Хүү процессын гүн 0–4 & Модны түвшин, ``module асуулга''-ын тоо\\
-Demo мод: + Хүү, + Zombie, STOP/CONT/KILL, \code{wait()} & Шинэ зангилаа ногоон; S→T, S→Z шар; zombie алга болох\\
-Автомат шинэчлэх 1/2/5 с & \code{demo_busy} R↔S — бодит цагийн төлөв\\
-▶ Сценари & fork → SIGSTOP → SIGCONT → SIGTERM (Z) → \code{wait()}, алхам бүр Түүхэнд\\
+Demo мод: + Хүү, + Zombie, STOP/CONT/KILL, \code{wait()} & Шинэ зангилаа ногоон; S-ээс T, S-ээс Z болсон нь шар; zombie алга болох\\
+Автомат шинэчлэх 1/2/5 с & \code{demo_busy}-ийн төлөв R, S хооронд бодит цагт солигдоно\\
+Сценари & fork, SIGSTOP, SIGCONT, SIGTERM (Z), \code{wait()} дарааллаар; алхам бүр Түүхэнд\\
 Буруу оролт (\code{abc}, \code{-5}, хоосон, хэт том) & Улаан мэдэгдэл, мод цэвэрлэгдэнэ\\
-Module дуудлагын лог & write \code{/proc/pid} → read \code{/proc/pid} (байт, µs)\\
+Module дуудлагын лог & write \code{/proc/pid}, дараа нь read \code{/proc/pid} (байт, µs)\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -381,7 +378,7 @@ Module дуудлагын лог & write \code{/proc/pid} → read \code{/proc/p
 \textbf{Орчин.}
 \begin{itemize}[nosep]
   \item Bare-metal (B242270047, Dell Inspiron 15 3520): Ubuntu 24.04.5 LTS, kernel \code{7.0.0-34-generic}, gcc 13.3.0, \code{systemd-detect-virt} = \code{none}, Secure Boot унтраалттай (\code{tests/kmod_baremetal.txt}, \code{tests/env_baremetal.txt}).
-  \item Хоёр дахь компьютер (B231910003, Acer Nitro): Kubuntu 26.04.1 LTS, kernel \code{7.0.0-38-generic}, gcc 15.2.0, Secure Boot асаалттай --- module-д гарын үсэг зурж ачаалсан (\code{tests/env_acer_kubuntu.txt}).
+  \item Хоёр дахь компьютер (B231910003, Acer Nitro): Kubuntu 26.04.1 LTS, kernel \code{7.0.0-38-generic}, gcc 15.2.0, Secure Boot асаалттай тул module-д гарын үсэг зурж ачаалсан (\code{tests/env_acer_kubuntu.txt}).
   \item Хөгжүүлэлт: WSL2 Ubuntu 22.04, kernel \code{6.6.87.2-microsoft-standard-WSL2}, gcc 11.4, \code{HZ} = 250.
 \end{itemize}
 
@@ -417,18 +414,18 @@ P1–P9 & Бэлтгэл module-ууд & dmesg-ийн мөрүүд, \code{Hello 
 \toprule
 \textbf{Багц} & \textbf{Inspiron}\newline\textbf{7.0.0-34} & \textbf{Acer}\newline\textbf{7.0.0-38} & \textbf{WSL2}\newline\textbf{6.6.87.2}\\
 \midrule
-Гараар (\code{tests/kmod_baremetal.txt}, 10 тохиолдол) & 10/10 \ok & — & —\\
+Гараар (\code{tests/kmod_baremetal.txt}, 10 тохиолдол) & 10/10 зөв & хийгээгүй & хийгээгүй\\
 \code{tests/basic/test_basic.sh} & 5/5 \pass & 5/5 \pass & 4 \pass, 1 SKIP\textsuperscript{a}\\
 \code{tests/boundary/test_boundary.sh} & 7/7 \pass & 7/7 \pass\textsuperscript{c} & 7/7 \pass\\
-\code{sudo make -C src/prereq test} & 9/9 \pass & — & 9/9 \pass\\
-\code{src/ui/tests/test_api.py} (unittest) & 24 OK (1 алгассан\textsuperscript{b}) & — & 24 OK (1 алгассан\textsuperscript{b})\\
+\code{sudo make -C src/prereq test} & 9/9 \pass & хийгээгүй & 9/9 \pass\\
+\code{src/ui/tests/test_api.py} (unittest) & 24 OK (1 алгассан\textsuperscript{b}) & хийгээгүй & 24 OK (1 алгассан\textsuperscript{b})\\
 \code{src/ui/tests/test_tree.mjs} (Node) & \multicolumn{3}{l}{12/12 (kernel-ээс хамаарахгүй)}\\
-\code{src/ui/contract_check.py} & 17 \ok, 1 \warn{}, 0 \no{} & — & 17 \ok, 1 \warn{}, 0 \no{}\\
+\code{src/ui/contract_check.py} & 17 зөв, 1 анхааруулга\textsuperscript{d}, 0 алдаа & хийгээгүй & 17 зөв, 1 анхааруулга\textsuperscript{d}, 0 алдаа\\
 \bottomrule
 \end{tabular}
 
 \smallskip
-{\footnotesize a — WSL-ийн PID namespace-д kernel thread харагдахгүй; bare-metal дээр kernel thread тест (B5, PID 2) \pass.\quad b — \code{/proc/pid_tree}-тэй module шаардлагатай тест.\quad c — Kubuntu 26.04-ийн \code{tee} (Rust хувилбар) алдааг \code{tee: /proc/pid: Invalid argument}-ийн оронд \code{/proc/pid: Invalid argument (os error 22)} хэлбэрээр хэвлэдэг; errno (22, 34) ижил.\quad \warn{} — \code{/proc/pid_tree} байхгүй тул \code{book} горим.}
+{\footnotesize a: WSL-ийн PID namespace-д kernel thread харагдахгүй; bare-metal дээр kernel thread тест (B5, PID 2) \pass.\quad b: \code{/proc/pid_tree}-тэй module шаардлагатай тест.\quad c: Kubuntu 26.04-ийн \code{tee} (Rust хувилбар) алдааг \code{tee: /proc/pid: Invalid argument}-ийн оронд \code{/proc/pid: Invalid argument (os error 22)} хэлбэрээр хэвлэдэг; errno (22, 34) ижил.\quad d: \code{/proc/pid_tree} байхгүй тул UI \code{book} горимоор ажилласан.}
 \end{center}
 
 \subsection{Bare-metal дээрх бодит гаралт}
@@ -465,7 +462,7 @@ bash: echo: write error: Invalid argument
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\linewidth,height=0.5\textheight,keepaspectratio]{step6_history_calls.png}
-\caption{Сценари дууссаны дараах Түүх (SIGSTOP → SIGCONT → SIGTERM → \code{wait()}) ба ``Module дуудлагын лог'': write \code{/proc/pid} 5 байт, read 46 байт, тус бүр хэдэн зуун µs. WSL2.}
+\caption{Сценари дууссаны дараах Түүх (SIGSTOP, SIGCONT, SIGTERM, \code{wait()}) ба ``Module дуудлагын лог'': write \code{/proc/pid} 5 байт, read 46 байт, тус бүр хэдэн зуун µs. WSL2.}
 \end{figure}
 \FloatBarrier
 
@@ -478,17 +475,17 @@ bash: echo: write error: Invalid argument
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\linewidth,height=0.4\textheight,keepaspectratio]{ui_baremetal_history.png}
-\caption{Bare-metal: сценарийн түүх — SIGSTOP, SIGCONT, SIGTERM → zombie, \code{wait()}.}
+\caption{Bare-metal: сценарийн түүх (SIGSTOP, SIGCONT, SIGTERM-ийн дараа zombie, \code{wait()}).}
 \end{figure}
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.75\linewidth,height=0.4\textheight,keepaspectratio]{term_book_example.png}
-\caption{Bare-metal: номын жишээ — \code{echo $$ > /proc/pid} (bash, эцэг \code{gnome-terminal-}) ба \code{echo 1 > /proc/pid} (systemd).}
+\caption{Bare-metal: номын жишээ, \code{echo $$ > /proc/pid} (bash, эцэг \code{gnome-terminal-}) ба \code{echo 1 > /proc/pid} (systemd).}
 \end{figure}
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.75\linewidth,height=0.3\textheight,keepaspectratio]{term_tests_pass.png}
-\caption{Bare-metal: \code{test_basic.sh} 5/5, \code{test_boundary.sh} 7/7 \pass{} — Summary.}
+\caption{Bare-metal: \code{test_basic.sh} 5/5, \code{test_boundary.sh} 7/7 PASS, тестийн дүгнэлт.}
 \end{figure}
 \begin{figure}[h!]
 \centering
@@ -498,13 +495,13 @@ bash: echo: write error: Invalid argument
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.9\linewidth,height=0.42\textheight,keepaspectratio]{step2_spawn.png}
-\caption{Тест 5: \code{demo_root} \code{fork()} хийж шинэ хүү \code{demo_new_1} үүсгэв — мод дээр ногоон хүрээтэй ``шинэ'' гэж тодорч, \code{demo_busy}-ийн төлөв S→R шараар тэмдэглэгдэв. WSL2.}
+\caption{Тест 5: \code{demo_root} \code{fork()} хийж шинэ хүү \code{demo_new_1} үүсгэв. Мод дээр ногоон хүрээтэй ``шинэ'' гэж тодорч, \code{demo_busy}-ийн төлөв S-ээс R болсныг шараар тэмдэглэгдэв. WSL2.}
 \end{figure}
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.49\linewidth]{step5_zombie.png}\hfill
 \includegraphics[width=0.49\linewidth]{expand_in_place.png}
-\caption{Зүүн: SIGTERM → \code{demo_new_1} S→Z (эцэг \code{wait()} хийгээгүй). Баруун: газар дээр нь нээх (⊕/⊖), товчилсон өвөг эцэг.}
+\caption{Зүүн: SIGTERM-ийн дараа \code{demo_new_1} S-ээс Z болсон (эцэг \code{wait()} хийгээгүй). Баруун: газар дээр нь нээх, хаах товч, товчилсон өвөг эцэг.}
 \end{figure}
 \FloatBarrier
 
@@ -519,9 +516,9 @@ bash: echo: write error: Invalid argument
 \toprule
 \textbf{Асуудал} & \textbf{Засвар}\\
 \midrule
-WSL2-д \code{echo 1} → \code{pid = [256]}: \code{task->pid} нь global PID & \code{task_pid_vnr()} — бичигчийн namespace-ийн PID (\code{3234d12})\\
+WSL2-д \code{echo 1} хийхэд \code{pid = [256]} гарсан: \code{task->pid} нь global PID & \code{task_pid_vnr()}: бичигчийн namespace-ийн PID (\code{3234d12})\\
 Хэсэгчлэн (8 байтаар) уншихад мөр тасрах эрсдэл (номын \code{completed} туг) & \code{seq_file} + \code{single_open}\\
-UI-ийн гүн 0 ба 1 ижил мод & \code{level < depth} → \code{level <= depth}\\
+UI-ийн гүн 0 ба 1 ижил мод & \code{level < depth}-ийг \code{level <= depth} болгосон\\
 Сервер зогсоход туршилтын процессууд өнчин үлдэх & \code{demo_root} эцгээ шалгаж өөрийгөө цэвэрлэнэ\\
 \bottomrule
 \end{tabular}
@@ -540,18 +537,18 @@ UI-ийн гүн 0 ба 1 ижил мод & \code{level < depth} → \code{level
 %================================================================ 10
 \section{Дүгнэлт}
 
-Сурах бичгийн Programming Project 2-ын бүх шаардлагыг (\code{/proc/pid} write, read, номын формат, хүчингүй PID → 0 байт) хэрэгжүүлж, task hierarchy дүрслэлд зориулан эцэг, хүүхдийн мөрөөр өргөтгөсөн. 2-р бүлгийн бэлтгэл module-ууд орчныг шалгана. Интерактив UI нь бодит module-тай \code{/proc/pid}-ээр холбогдож, процессын амьдралын мөчлөгийг (fork, stop, zombie, wait) бодит цагт харуулна. Linux суусан хоёр компьютер ба WSL2 дээрх 60 гаруй автомат шалгалт, 10 гар тестээр зөв ажиллагааг нотолж, PID namespace-ийн алдааг илрүүлж зассан. Өөр компьютер дээр дахин ажиллуулах алхмыг \code{docs/Manual.md} (\code{IV-2-2_Manual.pdf}) болон README-ийн Quick Start-д бичсэн.
+Сурах бичгийн Programming Project 2-ын бүх шаардлагыг (\code{/proc/pid} write, read, номын формат, хүчингүй PID үед 0 байт) хэрэгжүүлж, task hierarchy дүрслэлд зориулан эцэг, хүүхдийн мөрөөр өргөтгөсөн. 2-р бүлгийн бэлтгэл module-ууд орчныг шалгана. Интерактив UI нь бодит module-тай \code{/proc/pid}-ээр холбогдож, процессын амьдралын мөчлөгийг (fork, stop, zombie, wait) бодит цагт харуулна. Linux суусан хоёр компьютер ба WSL2 дээрх 60 гаруй автомат шалгалт, 10 гар тестээр зөв ажиллагааг нотолж, PID namespace-ийн алдааг илрүүлж зассан. Өөр компьютер дээр дахин ажиллуулах алхмыг \code{docs/Manual.md} (\code{IV-2-2_Manual.pdf}) болон README-ийн Quick Start-д бичсэн.
 
 %================================================================ Материал
 \section*{Ашигласан материал}
 \addcontentsline{toc}{section}{Ашигласан материал}
 \begin{enumerate}[nosep, label={[\arabic*]}]
-  \item A. Silberschatz, P. B. Galvin, G. Gagne. \emph{Operating System Concepts}, 10th ed. Wiley, 2018. — Ch.2–3 Programming Projects, §3.1–3.3, §6.7.
-  \item Linux kernel source — \code{include/linux/sched.h}, \code{include/linux/proc_fs.h}, \code{fs/seq_file.c}, \code{kernel/pid.c}. \url{https://elixir.bootlin.com/linux/latest/source}
-  \item The Linux Kernel documentation — ``The /proc Filesystem'', ``seq\_file interface'', ``RCU concepts''. \url{https://docs.kernel.org/}
+  \item A. Silberschatz, P. B. Galvin, G. Gagne. \emph{Operating System Concepts}, 10th ed. Wiley, 2018. Ch.2–3 Programming Projects, §3.1–3.3, §6.7.
+  \item Linux kernel source: \code{include/linux/sched.h}, \code{include/linux/proc_fs.h}, \code{fs/seq_file.c}, \code{kernel/pid.c}. \url{https://elixir.bootlin.com/linux/latest/source}
+  \item The Linux Kernel documentation: ``The /proc Filesystem'', ``seq\_file interface'', ``RCU concepts''. \url{https://docs.kernel.org/}
   \item P. J. Salzman et al. \emph{The Linux Kernel Module Programming Guide}. \url{https://sysprog21.github.io/lkmpg/}
   \item F.CSM302 лекц (Г. Ганбат): Lec3 Процесс, Lec4 Урсгал, Lec6 Синхрончлол; OS\_BD1\_Guide.
-  \item Python 3 documentation — \code{http.server}, \code{threading}. \url{https://docs.python.org/3/}
+  \item Python 3 documentation: \code{http.server}, \code{threading}. \url{https://docs.python.org/3/}
 \end{enumerate}
 
 %================================================================ Хавсралт
@@ -579,7 +576,7 @@ B242270047 & Үндсэн kernel module: write, read, parent/children өргөт
 B190910014 & Interactive UI: PID оруулах/сонгох, мод, төлөвийн өнгө, refresh/reset, алдааны мэдэгдэл & \code{src/ui/}, PR \#2--\#4\\
 B210930842 & 2-р бүлгийн бэлтгэл module, build орчин, Operational manual (ноорог) & fork: \code{prereq-manual.docx}; \code{src/prereq/}: PR \#12\\
 B231910003 & Туршилт: номын жишээ, boundary/error тест, хоёр дахь компьютер дээрх үр дүн & \code{tests/}, PR \#11, \#19\\
-B232270108 & Үндсэн тайлан (Report.pdf). \textbf{Гүйцэтгээгүй} --- B190910014, B242270047 хийсэн & --- (\code{report/}: PR \#13)\\
+B232270108 & Үндсэн тайлан (Report.pdf). \textbf{Гүйцэтгээгүй}; B190910014, B242270047 хийсэн & \code{report/}: PR \#13 (бусад гишүүд)\\
 B241940099 & Хэрэглэгчийн manual, README Quick Start, БД1 пост, IV-2-5-ийн шүүмж & \code{docs/Manual.md} §B, \code{review/}, PR \#5, \#6\\
 \bottomrule
 \end{tabular}
