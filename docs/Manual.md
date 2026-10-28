@@ -28,7 +28,7 @@
 ```bash
 git clone https://github.com/Tugu8/os-bd1-IV-2-2-.git
 cd os-bd1-IV-2-2-
-git checkout v1.0.2          # БД1-ийн хамгийн сүүлийн хувилбар
+git checkout v1.0.1          # БД1-ийн хамгийн сүүлийн хувилбар
 ```
 
 ### A3. Dependency суулгах
