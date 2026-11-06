@@ -1,0 +1,59 @@
+# V-1-13 test log (2026-11-01, WSL2 6.18.33.2-microsoft-standard-WSL2, Debian 13, gcc (Debian 14.2.0-19) 14.2.0, Python 3.13.5)
+0a9ad37 Merge pull request #1 from Energyshifter8/feature/deadlock-detection
+mkdir -p bin
+cc -std=c11 -Wall -Wextra -pedantic -O2 -o bin/banker src/core/main.c src/core/banker.c src/core/json.c
+cc -std=c11 -Wall -Wextra -pedantic -O2 -o bin/unit_tests tests/unit_tests.c src/core/banker.c
+./bin/unit_tests
+[PASS] need = max - allocation
+[PASS] safety: textbook 8.6.3.3
+[PASS] request: textbook 8.6.3.3 sequence
+[PASS] request: invalid input
+[PASS] release
+[PASS] single resource: textbook 8.6.1
+[PASS] unsafe state
+[PASS] safety trace callback
+[PASS] parse vector
+[PASS] load matrix files
+[PASS] validate allocation <= max
+62 checks, 0 failed
+./tests/run_cli_tests.sh
+[PASS] 01_book_example
+[PASS] 02_book_project
+[PASS] 03_book_project_6B
+[PASS] 04_single_resource
+[PASS] 05_unsafe_state
+[PASS] 06_large
+[PASS] 07_command_errors
+[PASS] 08_edit_commands
+[PASS] 09_json_mode
+[PASS] 10_no_arguments
+[PASS] 11_bad_resource
+[PASS] 12_negative_resource
+[PASS] 13_missing_file
+[PASS] 14_wrong_count
+[PASS] 15_not_a_number
+[PASS] 16_negative_value
+[PASS] 17_empty_file
+[PASS] 18_too_few_resources
+[PASS] 19_alloc_rows
+[PASS] 20_alloc_exceeds_max
+[PASS] 21_missing_option_value
+[PASS] 22_long_line
+[PASS] 23_long_line_json
+[PASS] 24_detect
+[PASS] 25_detect_edge
+25 passed, 0 failed
+python3 -m unittest -v tests/test_ui_server.py
+test_batch_stops_at_first_error (tests.test_ui_server.ServerTest.test_batch_stops_at_first_error) ... ok
+test_every_example_loads_without_error (tests.test_ui_server.ServerTest.test_every_example_loads_without_error) ... ok
+test_initial_state_is_textbook_example (tests.test_ui_server.ServerTest.test_initial_state_is_textbook_example) ... ok
+test_newline_cannot_inject_second_command (tests.test_ui_server.ServerTest.test_newline_cannot_inject_second_command) ... ok
+test_quit_is_rejected (tests.test_ui_server.ServerTest.test_quit_is_rejected) ... ok
+test_release_and_errors (tests.test_ui_server.ServerTest.test_release_and_errors) ... ok
+test_static_page_is_served (tests.test_ui_server.ServerTest.test_static_page_is_served) ... ok
+test_textbook_request_sequence (tests.test_ui_server.ServerTest.test_textbook_request_sequence) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.227s
+
+OK
