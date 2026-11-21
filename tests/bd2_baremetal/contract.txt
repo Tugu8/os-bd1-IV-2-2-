@@ -1,0 +1,22 @@
+OK   Номын формат: command = [..] pid = [..] state = [..]                             command = [python3] pid = [21875] state = [0]
+OK   Нэмэлт мөр бүр parent = [..] ppid = [..] / child = [..] pid = [..] state = [..]  1 мөр — UI module-ээс хүүхдүүдийг уншина
+OK   pid = бичсэн PID (namespace: task_pid_vnr)                                       21875
+OK   command = /proc/self/comm                                                        [python3]
+OK   Дахин нээж уншихад ижил мөр (төлөв 'дуусаагүй')                                  
+OK   Нэг fd: write, (өөр нээлт 1 бичнэ), lseek 0, read = өөрийн PID (v2)              pid = [21875]
+OK   parent ppid = getppid() (namespace)                                              5060 vs 5060
+OK   child жагсаалтад хүү sleep (21877)                                               [21877]
+OK   8 байтаар хэсэгчлэн уншихад бүтэн мөр (count, *pos-ыг хүндэтгэнэ)                'command = [python3] pid = [21875] state = [0]\npare'
+OK   PID 1 → init/systemd                                                             [systemd]
+OK   state: унтаж буй (S) → TASK_INTERRUPTIBLE (1) бит                                8193
+OK   state: зогсоосон (T) → __TASK_STOPPED (4) бит                                    260
+OK   Байхгүй PID (4194303) → 0 байт                                                   ''
+OK   Буруу оролт 'abc' → write алдаа                                                  EINVAL
+OK   Буруу оролт '-5' → write алдаа                                                   EINVAL
+OK   Буруу оролт '12abc' → write алдаа                                                EINVAL
+OK   Буруу оролт '99999999999999999999' → write алдаа                                 ERANGE
+OK   Буруу оролт ' ' → write алдаа                                                    EINVAL
+WARN /proc/pid_tree байгаа эсэх                                                       алга — UI 'book' горимоор (хүүхдүүд /proc/pid-ийн child мөрөөс эсвэл procfs-оос) ажиллана
+
+OK 18, WARN 1, FAIL 0: UI ажиллана (WARN мөрийг харна уу)
+UI-ийн сонгох горим: book

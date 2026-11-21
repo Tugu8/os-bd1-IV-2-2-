@@ -1,0 +1,43 @@
+module: src/kmod/pid.ko (2.0)
+(boot-оос хойшхи dmesg мөрүүдийг хассан; зөвхөн module ачаалснаас хойшхи хэсэг)
+[  318.804040] /proc/pid removed
+[  318.836680] /proc/pid created
+reads=1000 t=3
+reads=2000 t=5
+reads=3000 t=8
+reads=4000 t=10
+reads=5000 t=12
+reads=6000 t=15
+reads=7000 t=17
+reads=8000 t=20
+reads=9000 t=22
+reads=10000 t=24
+reads=11000 t=27
+reads=12000 t=29
+reads=13000 t=31
+reads=14000 t=34
+reads=15000 t=36
+reads=16000 t=38
+reads=17000 t=41
+reads=18000 t=43
+reads=19000 t=45
+reads=20000 t=47
+reads=21000 t=50
+reads=22000 t=52
+reads=23000 t=54
+reads=24000 t=57
+reads=25000 t=60
+reads=26000 t=62
+reads=27000 t=64
+reads=28000 t=67
+reads=29000 t=69
+reads=30000 t=71
+reads=31000 t=74
+reads=32000 t=76
+reads=33000 t=78
+reads=34000 t=80
+reads=35000 t=82
+reads=36000 t=85
+reads=37000 t=87
+reads=38000 t=89
+survived 90s, reads=38673
