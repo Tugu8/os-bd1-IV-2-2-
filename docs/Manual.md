@@ -1,6 +1,6 @@
 # IV-2-2 Task Hierarchy: Хэрэглэгчийн manual
 
-**Хичээл:** F.CSM302 Үйлдлийн систем • Бие даалт 1 **Хуваарилалтын код:** IV-2-2
+**Хичээл:** F.CSM302 Үйлдлийн систем • Бие даалт 2 (эцсийн хувилбар `v2.0.0`) **Хуваарилалтын код:** IV-2-2
 **Хэрэглэгчийн хэсгийг бичсэн:** B241940099 **Operational хэсэг:** B210930842 (§A)
 
 > Энэ manual хоёр хэсэгтэй. **§A Operational** (суулгах, build, kernel-ийн хувилбар, dependency)-ийг B210930842 бичнэ. **§B Хэрэглэгчийн хэсэг** нь UI-г хэрхэн ашиглах, дэлгэц дээрх тэмдэг ба өнгө юу гэсэн үг, жишээ, түгээмэл алдааг тайлбарлана.
@@ -28,7 +28,7 @@
 ```bash
 git clone https://github.com/Tugu8/os-bd1-IV-2-2-.git
 cd os-bd1-IV-2-2-
-git checkout v1.0.1          # БД1-ийн хамгийн сүүлийн хувилбар
+git checkout v2.0.0          # БД2-ын эцсийн хувилбар (БД1: v1.0.1)
 ```
 
 ### A3. Dependency суулгах
@@ -95,7 +95,7 @@ bash tests/basic/test_basic.sh            # /proc/pid нь 0666 тул sudo хэ
 
 ```bash
 bash tests/boundary/test_boundary.sh
-python3 -m unittest src/ui/tests/test_api.py     # UI API, 24 тест
+python3 -m unittest src/ui/tests/test_api.py     # UI API, 28 тест
 python3 src/ui/contract_check.py                 # module ба UI-ийн интерфейс
 ```
 
@@ -109,6 +109,22 @@ python3 src/ui/contract_check.py                 # module ба UI-ийн инт�
 | 6 | 30 оронтой `999...9` (long-оос их) | `Numerical result out of range` |
 | 7 | 32 байтаас урт мөр | `Invalid argument` |
 
+### A6.1 БД2 regression тест
+
+```bash
+bash tests/regression/test_regression.sh   # C программыг өөрөө хөрвүүлнэ (gcc, make)
+bash tests/run_bd2.sh baremetal            # v1.0.1 ба v2-ийг дараалан туршиж tests/bd2_baremetal/-д хадгална
+```
+
+| № | Шалгах зүйл | Хүлээгдсэн үр дүн |
+|---|---|---|
+| R1 | `echo $$ > /proc/pid; cat /proc/pid` | номын формат, `pid = [$$]` |
+| R2 | `cat /sys/module/pid/version` | `2.0` |
+| R3 | 4 процесс тус бүр 5000 удаа өөрийн PID-ийг нэг fd-ээр бичиж унших | mismatch 0 |
+| R4 | `mt_fork`: үндсэн бус урсгал fork хийсэн хүүхэд | эцгийн `child` мөрөнд гарна |
+| R5 | тэр хүүхдийн `parent` мөр | `ppid` = эцгийн TGID = `/proc/<child>/stat`-ийн 4 дэх талбар |
+| R6 | fork/exit ачааллын үед 3000 удаа унших | 3000 амжилттай, `dmesg`-д BUG/WARNING алга |
+
 ### A7. Бодит үр дүн
 
 | Тест | Ubuntu 24.04 (Inspiron) | Kubuntu 26.04.1 (Acer) | WSL2 6.6.87.2 |
@@ -118,6 +134,22 @@ python3 src/ui/contract_check.py                 # module ба UI-ийн инт�
 | `make -C src/prereq test` | 9 PASS, 0 FAIL | хийгээгүй | 9 PASS, 0 FAIL |
 | `src/ui/tests/test_api.py` | 24 OK, 1 алгассан | хийгээгүй | 24 OK, 1 алгассан |
 | `src/ui/contract_check.py` | 17 зөв, 1 анхааруулга, 0 алдаа | хийгээгүй | 17 зөв, 1 анхааруулга, 0 алдаа |
+
+**БД2, v2.0 module** (2026-11-21, `tests/bd2_wsl/`):
+
+| Тест | WSL2 Ubuntu 26.04, kernel 6.18.33.2 |
+|---|---|
+| `tests/basic/test_basic.sh` | 4 PASS, 1 SKIP (kernel thread, A8) |
+| `tests/boundary/test_boundary.sh` | 7 PASS, 0 FAIL |
+| `tests/regression/test_regression.sh` | 6 PASS, 0 FAIL (v1.0.1: R2-R5 FAIL, R6 үед VM унасан) |
+| `src/ui/tests/test_api.py` | 27 OK, 1 алгассан |
+| `src/ui/tests/test_tree.mjs` | 12 PASS |
+| `src/ui/contract_check.py` | 18 OK, 1 WARN, 0 FAIL |
+| `tests/regression/stress_compare.sh` (90 сек) | 17 550 уншилт, алдаагүй (v1.0.1: 21 сек-д soft lockup) |
+
+WSL2-ийн kernel-ийг Microsoft өөр gcc-ээр хөрвүүлсэн тул symbol CRC зөрж, module-ийг `insmod -f`-ээр ачаалсан (kernel F taint). Bare-metal Ubuntu дээр энгийн `insmod` хангалттай.
+
+**БД1, v1.0.1 module:**
 
 - Ubuntu 24.04 bare-metal: 2026-10-27, `*/result_baremetal.txt`. Тест 5 (kernel thread, PID 2) PASS.
 - Kubuntu 26.04.1: 2026-10-27, `*/result_acer_kubuntu.txt`, `tests/env_acer_kubuntu.txt`.
@@ -137,11 +169,25 @@ Kubuntu 26.04-ийн `tee` нь Rust хувилбар тул boundary тести
 | `module verification failed: signature and/or required key missing - tainting kernel` | гарын үсэггүй module | анхааруулга л, ажиллагаанд нөлөөлөхгүй |
 | `insmod: ERROR: ... File exists` | module аль хэдийн ачаалагдсан | `sudo rmmod pid` хийгээд дахин |
 | `make -C src/kmod` ажиллахгүй | Makefile `$(PWD)` ашигладаг | `cd src/kmod && make` |
-| `state = [8193]`, `[260]` гэх мэт том тоо | `__state` битийн маск (`TASK_INTERRUPTIBLE \| TASK_FREEZABLE` гэх мэт) | зөв; үсгэн төлөвийг UI харуулна |
+| `state = [8193]`, `[260]` гэх мэт том тоо | `__state` битийн маск (`TASK_INTERRUPTIBLE \| TASK_FREEZABLE` гэх мэт) | зөв; UI битийн нэрийг "__state битүүд" мөрөнд харуулна (v2) |
 | Тест 5 `[SKIP] No visible kernel thread` | WSL/контейнерийн PID namespace-д kernel thread харагдахгүй | bare-metal дээр ажиллуулна |
-| Хоёр терминалаас зэрэг `echo N > /proc/pid` хийхэд нөгөөгийнх нь гарна | module нэг глобал `l_pid` хадгалдаг | UI сервер mutex-ээр хамгаалдаг; терминалд нэг нэгээр нь |
+| Хоёр терминалаас зэрэг `echo N > /proc/pid` хийхэд нөгөөгийнх нь гарна | echo, cat хоёр тусдаа нээлт тул сүүлийн глобал PID-ийг уншина | нэг fd-ээр бичиж уншина (A9); UI сервер ингэж уншдаг |
 | UI: `Address already in use` | 8000 порт эзлэгдсэн | `--port 9000` |
 | WSL2: `linux-headers-...-microsoft-standard-WSL2` багц олдохгүй | Microsoft kernel-д headers багц байдаггүй | хөгжүүлэлтэд `sudo bash src/prereq/setup_wsl_kernel.sh` |
+| WSL2: `insmod: Invalid module format`, dmesg-д `disagrees about version of symbol module_layout` | Ажиллаж буй kernel-ийг өөр gcc-ээр хөрвүүлсэн тул symbol CRC зөрнө | `sudo insmod -f pid.ko` (`CONFIG_MODULE_FORCE_LOAD=y`, kernel F taint); эсвэл тэр хувилбарын gcc-ээр kernel-ийг дахин хөрвүүлнэ |
+| WSL2: `wsl --shutdown`-ы дараа `/lib/modules/.../build: No such file or directory` | WSL ачаалах бүрт `/lib/modules`-ийг дахин mount хийдэг | `make KDIR=/usr/src/WSL2-Linux-Kernel` |
+| `modpost: "tasklist_lock" undefined` | `tasklist_lock` module-д export хийгдээгүй | v2 код үүнийг ашигладаггүй (Final Report §2.1) |
+
+### A9. Нэг fd-ээр унших (v2)
+
+v2 module нээлт (file descriptor) бүрт бичсэн PID-ийг тусад нь хадгална. Нэг fd-ээр бичээд, байрлалыг 0 болгож уншвал бусад процесс зэрэг `/proc/pid` руу бичсэн ч өөрийн PID-ийн мэдээлэл гарна. Bash-д `lseek` байхгүй тул Python-оор:
+
+```bash
+python3 -c 'import os,sys; fd=os.open("/proc/pid",os.O_RDWR); os.write(fd,(sys.argv[1]+"
+").encode()); os.lseek(fd,0,0); print(os.read(fd,65536).decode(),end="")' 1
+```
+
+`echo N > /proc/pid; cat /proc/pid` өмнөх шигээ ажиллана (номын интерфейс).
 
 ---
 
@@ -218,7 +264,7 @@ python3 src/ui/server.py             # UI сервер: http://localhost:8000
 | **Z** | улаан `#d64545` | zombie | Дууссан ч эцэг нь `wait()` хийгээгүй тул бүртгэл нь үлдсэн |
 | **I** | цайвар саарал `#a5adba` | idle | Kernel-ийн идэвхгүй thread |
 
-`Task мэдээлэл` карт дээр State нь S (sleeping), `__state = 1` гэж харагдана. `__state` нь kernel-ийн дотоод тоо, `/proc/pid` гаралтын `state = [1]`-тэй ижил.
+`Task мэдээлэл` карт дээр State нь S (sleeping), `__state = 1` гэж харагдана. `__state` нь kernel-ийн дотоод тоо, `/proc/pid` гаралтын `state = [1]`-тэй ижил. Доор нь "__state битүүд" мөр уг тоог битийн нэрээр тайлна (v2): `1` бол `TASK_INTERRUPTIBLE`, `8193` бол `TASK_INTERRUPTIBLE | TASK_FREEZABLE`, `260` бол `__TASK_STOPPED | TASK_WAKEKILL`. Зангилаа дээр хулгана барихад гарах tooltip-д мөн ижил тайлбар гарна.
 
 #### B4.2 Зангилаа ба шугамын тэмдэг
 
@@ -371,7 +417,7 @@ Zombie зангилаа дээр **+** товч гарахгүй, учир нь 
 | **module ачаалагдаагүй** (улаан шошго, 503) | `/proc/pid` үүсээгүй | `sudo insmod src/kmod/pid.ko`. Build хийгээгүй бол `cd src/kmod && make` |
 | `insmod: ERROR: could not insert module … Operation not permitted` | `sudo` байхгүй | `sudo`-той ажиллуулна |
 | `make` нь `linux-headers` / build хавтас олдсонгүй гэнэ | Ажиллаж буй kernel-ийн header байхгүй | `sudo apt install linux-headers-$(uname -r)`. WSL2 дээр §A-ийн заавар |
-| **Буруу оролт 'abc'** (400) | PID зөвхөн цифр байх ёстой | `abc`, `-5`, `1.5`, хоосон оролт хүлээн авагдахгүй. Зөвхөн эерэг бүхэл тоо бичнэ |
+| **Буруу оролт 'abc'** (400) | PID зөвхөн цифр байх ёстой | `abc`, `-5`, `1.5`, `0`, хоосон оролт хүлээн авагдахгүй. 1-ээс эхлэх бүхэл тоо бичнэ |
 | **PID … олдсонгүй** (404) | Процесс дууссан эсвэл байхгүй | Жагсаалтаас байгаа PID сонгоно. Module энэ үед 0 байт буцаадаг (номын шаардлага) |
 | **/proc/pid-ийн гаралт номын форматтай таарахгүй** (502) | Module буруу формат хэвлэсэн | `python3 src/ui/contract_check.py` ажиллуулж алдаатай гэж гарсан шалгалтыг харна. Module-ийн хариуцагчид мэдэгдэнэ |
 | **Сервертэй холбогдож чадсангүй** | Сервер зогссон эсвэл порт буруу | `python3 src/ui/server.py` ажиллаж байгаа эсэх, браузерийн хаяг дахь порт зөв эсэхийг шалгана. Түр сүлжээний алдаа бол UI нэг удаа өөрөө дахин оролдож, өмнөх дүрслэлийг хадгална |
@@ -381,7 +427,7 @@ Zombie зангилаа дээр **+** товч гарахгүй, учир нь 
 | Мод хоосон, зөвхөн нэг зангилаа | Гүн 0 эсвэл процессд хүүхэд байхгүй | Гүнийг 1–2 болгоно. Хүүхэдгүй процесс бол хэвийн |
 | Мод ихээр жижгэрсэн, хэвтээ гүйлгэх мөр гарсан | Хэт олон хүүхэдтэй процесс (жнь PID 1) | Гүнийг багасгана, "Өвөг эцгийг товчлох"-ыг асаана, эсвэл шүүлтүүрээр хайна |
 | Төлөв шар (`module: зөвхөн /proc/pid`) | Module-д `/proc/pid_tree` байхгүй | Алдаа биш. UI ажиллана (§B4.4) |
-| Хоёр терминалаас зэрэг `echo N > /proc/pid` хийхэд өөр PID-ийн мэдээлэл гарлаа | Module нэг **глобал** PID хадгалдаг | UI-ийн сервер үүнийг mutex-ээр хамгаалдаг. Гараар хоёр терминалд зэрэг бүү ажилла |
+| Хоёр терминалаас зэрэг `echo N > /proc/pid` хийхэд өөр PID-ийн мэдээлэл гарлаа | echo, cat нь тусдаа нээлт тул сүүлд бичсэн **глобал** PID-ийг уншина | Нэг fd-ээр бичиж уншина (A9). UI сервер ингэж уншдаг тул нөлөөлөхгүй |
 
 ![Буруу оролт](images/ui_invalid_input.png)
 

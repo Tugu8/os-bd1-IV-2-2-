@@ -3,15 +3,15 @@
 Kernel module ↔ UI интерфейсийн шалгагч — src/kmod-ийн хөгжүүлэгчид зориулав.
 
     sudo insmod src/kmod/pid.ko
-    python3 src/ui/contract_check.py        # ✔ / ⚠ / ✖ хүснэгт; ✖ байвал exit 1
+    python3 src/ui/contract_check.py        # OK / WARN / FAIL хүснэгт; FAIL байвал exit 1
 
 Module нь src/ui/README.md-ийн "Kernel module-тай тохирох интерфейс"-ийг хангаж буйг
 жинхэнэ процессуудаар шалгана: энэ скрипт өөрөө, түүний хүү `sleep` (S ба T),
-zombie хүү, нэмэлт урсгал. /proc/pid_tree байхгүй бол ⚠ — UI "book" горимоор
+zombie хүү, нэмэлт урсгал. /proc/pid_tree байхгүй бол WARN: UI "book" горимоор
 (эцэг/хүүгийн холбоог procfs-оос) ажиллана.
 
-Module нэг глобал PID хадгалдаг тул UI сервер зэрэг ажиллаж байвал үр дүн
-холилдож болно — серверийг зогсоогоод ажиллуулна уу.
+v1 module нэг глобал PID хадгалдаг байсан тул UI сервер зэрэг ажиллаж байвал
+үр дүн холилдож болно. v2 module (БД2) нээлт бүрт PID-ээ тусад нь хадгална.
 """
 import ctypes
 import errno
@@ -31,8 +31,8 @@ results = []
 
 
 def check(name, ok, detail="", soft=False):
-    """soft=True → тохирохгүй бол ⚠ (UI ажиллана), үгүй бол ✖."""
-    results.append(("✔" if ok else ("⚠" if soft else "✖"), name, detail))
+    """soft=True бол тохирохгүй үед WARN (UI ажиллана), үгүй бол FAIL."""
+    results.append(("OK" if ok else ("WARN" if soft else "FAIL"), name, detail))
     return ok
 
 
@@ -120,6 +120,19 @@ def check_book():
           f"{b['pid']} ≠ {me} — global PID хэвлэж байж магадгүй" if b["pid"] != me else str(me))
     check("command = /proc/self/comm", b["comm"] == comm_of(me), f"[{b['comm']}]")
     check("Дахин нээж уншихад ижил мөр (төлөв 'дуусаагүй')", read(PROC_PID) == line)
+    # v2: нэг fd-ээр бичсэн PID нь тэр fd-д хадгалагдана. Хооронд нь өөр нээлтээр
+    # "1" бичсэн ч энэ fd-ээс уншихад өөрийн PID-ийн мөр гарна.
+    fd = os.open(PROC_PID, os.O_RDWR)
+    try:
+        os.write(fd, f"{me}\n".encode())
+        write(PROC_PID, "1\n")
+        os.lseek(fd, 0, os.SEEK_SET)
+        own = server.parse_book_line(os.read(fd, 65536).decode(errors="replace")) or {}
+    finally:
+        os.close(fd)
+    check("Нэг fd: write, (өөр нээлт 1 бичнэ), lseek 0, read = өөрийн PID (v2)", own.get("pid") == me,
+          f"pid = [{own.get('pid')}]" + ("" if own.get("pid") == me else ": v1 module (нэг глобал PID)"),
+          soft=True)
     if rest:
         kid = subprocess.Popen(["sleep", "30"])
         try:
@@ -261,20 +274,20 @@ def check_tree():
 
 def main():
     if not os.path.exists(PROC_PID):
-        print("✖ /proc/pid алга — module ачаалагдаагүй (sudo insmod src/kmod/pid.ko)")
+        print("FAIL /proc/pid алга — module ачаалагдаагүй (sudo insmod src/kmod/pid.ko)")
         return 2
     check_book()
     check_tree()
     w = max(len(n) for _, n, _ in results)
     for mark, name, detail in results:
-        print(f"{mark} {name.ljust(w)}  {detail or ''}")
-    n = {m: sum(r[0] == m for r in results) for m in "✔⚠✖"}
-    print(f"\n{n['✔']} ✔   {n['⚠']} ⚠   {n['✖']} ✖   — "
-          + ("UI-тай бүрэн нийцнэ" if not n["✖"] and not n["⚠"] else
-             "UI ажиллана (⚠-г харна уу)" if not n["✖"] else "✖-г засна уу (src/ui/README.md)"))
+        print(f"{mark.ljust(4)} {name.ljust(w)}  {detail or ''}")
+    n = {m: sum(r[0] == m for r in results) for m in ("OK", "WARN", "FAIL")}
+    print(f"\nOK {n['OK']}, WARN {n['WARN']}, FAIL {n['FAIL']}: "
+          + ("UI-тай бүрэн нийцнэ" if not n["FAIL"] and not n["WARN"] else
+             "UI ажиллана (WARN мөрийг харна уу)" if not n["FAIL"] else "FAIL мөрийг засна уу (src/ui/README.md)"))
     mode = server.select_backend(False)
     print(f"UI-ийн сонгох горим: {mode.mode if mode else '—'}")
-    return 1 if n["✖"] else 0
+    return 1 if n["FAIL"] else 0
 
 
 if __name__ == "__main__":

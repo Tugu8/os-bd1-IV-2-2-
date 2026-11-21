@@ -5,6 +5,16 @@
  * /proc/pid-ээс уншиж болно.
  *
  * OSC (2018) 3-р бүлэг, Programming Project 2
+ *
+ * v2 (БД2) өөрчлөлт:
+ *  - Хүүхдийг RCU-ээр хамгаалагдсан процессын жагсаалтаас (for_each_process)
+ *    real_parent-ийн TGID-ээр олно. Өмнө нь RCU хамгаалдаггүй task->children
+ *    жагсаалтыг гүйдэг байсан (түүний tasklist_lock module-д export хийгдээгүй).
+ *  - Олон урсгалтай процесс: аль ч урсгалын хүүхэд гарна, ppid нь эцгийн
+ *    TGID (ps, /proc/<pid>/stat-тай ижил).
+ *  - Нээсэн файл бүр өөрийн PID-тэй: нэг fd-ээр бичээд, lseek(0) хийж
+ *    уншвал өөр процесс зэрэг бичсэн ч өөрийн PID-ийн мэдээллийг авна.
+ *    echo/cat (тусдаа нээлт) нь өмнөх шигээ сүүлийн глобал PID-ийг уншина.
  */
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -13,6 +23,7 @@
 #include <linux/proc_fs.h>
 #include <linux/rcupdate.h>
 #include <linux/sched.h>
+#include <linux/sched/signal.h>
 #include <linux/threads.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
@@ -21,8 +32,13 @@
 #define PROC_NAME "pid"
 #define MAX_INPUT_LEN 32
 
-/* хамгийн сүүлд бичсэн PID */
+/* хамгийн сүүлд бичсэн PID (бүх нээлтэд нийтлэг, номын echo/cat горим) */
 static long l_pid;
+
+/* нэг нээлтэд хамаарах төлөв: энэ fd-ээр бичсэн PID */
+struct pid_ctx {
+	long pid;	/* 0 = энэ fd-ээр бичээгүй, глобал l_pid-ийг ашиглана */
+};
 
 /*
  * Гаралт:
@@ -34,25 +50,41 @@ static long l_pid;
  */
 static int pid_show(struct seq_file *m, void *v)
 {
-	struct task_struct *task, *parent, *child;
+	struct pid_ctx *ctx = m->private;
+	struct task_struct *task, *parent, *p;
+	long pid = ctx->pid ? ctx->pid : READ_ONCE(l_pid);
 
 	rcu_read_lock();
-	task = pid_task(find_vpid(l_pid), PIDTYPE_PID);
+	task = pid_task(find_vpid(pid), PIDTYPE_PID);
 	if (!task)
 		goto out;
 
 	seq_printf(m, "command = [%s] pid = [%d] state = [%u]\n",
 		   task->comm, task_pid_vnr(task), READ_ONCE(task->__state));
 
+	/* real_parent нь __rcu заагч; эцгийн TGID-ийг хэвлэнэ (ps-тэй ижил) */
 	parent = rcu_dereference(task->real_parent);
-	if (parent && parent != task)
+	if (pid_alive(task) && parent && parent != task)
 		seq_printf(m, "parent = [%s] ppid = [%d]\n",
-			   parent->comm, task_pid_vnr(parent));
+			   parent->group_leader->comm, task_tgid_vnr(parent));
 
-	list_for_each_entry_rcu(child, &task->children, sibling)
-		seq_printf(m, "child = [%s] pid = [%d] state = [%u]\n",
-			   child->comm, task_pid_vnr(child),
-			   READ_ONCE(child->__state));
+	/*
+	 * task->children жагсаалтыг kernel tasklist_lock-оор хамгаалдаг ч тэр
+	 * түгжээ module-д export хийгдээгүй. Харин процессын жагсаалт (tasks)
+	 * RCU-ээр хамгаалагдсан (list_add_tail_rcu / list_del_rcu) тул бүх
+	 * процессыг гүйж, эцгийнх нь TGID таарсныг хүүхэд гэж үзнэ. Ингэхэд аль
+	 * ч урсгалын fork хийсэн хүүхэд гарна (олон урсгалтай процесс).
+	 */
+	if (!pid_alive(task))
+		goto out;
+	for_each_process(p) {
+		struct task_struct *rp = rcu_dereference(p->real_parent);
+
+		if (p != task && rp && rp->tgid == task->tgid)
+			seq_printf(m, "child = [%s] pid = [%d] state = [%u]\n",
+				   p->comm, task_pid_vnr(p),
+				   READ_ONCE(p->__state));
+	}
 out:
 	rcu_read_unlock();
 	return 0;
@@ -60,12 +92,34 @@ out:
 
 static int proc_open(struct inode *inode, struct file *file)
 {
-	return single_open(file, pid_show, NULL);
+	struct pid_ctx *ctx;
+	int ret;
+
+	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
+	if (!ctx)
+		return -ENOMEM;
+
+	ret = single_open(file, pid_show, ctx);
+	if (ret)
+		kfree(ctx);
+	return ret;
+}
+
+static int proc_release(struct inode *inode, struct file *file)
+{
+	struct seq_file *m = file->private_data;
+	struct pid_ctx *ctx = m->private;
+
+	single_release(inode, file);
+	kfree(ctx);
+	return 0;
 }
 
 static ssize_t proc_write(struct file *file, const char __user *usr_buf,
 			  size_t count, loff_t *pos)
 {
+	struct seq_file *m = file->private_data;
+	struct pid_ctx *ctx = m->private;
 	char *k_mem;
 	long val;
 	int ret;
@@ -92,7 +146,8 @@ static ssize_t proc_write(struct file *file, const char __user *usr_buf,
 	if (val <= 0 || val > PID_MAX_LIMIT)
 		return -EINVAL;
 
-	l_pid = val;
+	ctx->pid = val;
+	WRITE_ONCE(l_pid, val);
 	return count;
 }
 
@@ -101,7 +156,7 @@ static const struct proc_ops pid_proc_ops = {
 	.proc_read = seq_read,
 	.proc_write = proc_write,
 	.proc_lseek = seq_lseek,
-	.proc_release = single_release,
+	.proc_release = proc_release,
 };
 
 static int __init pid_init(void)
@@ -125,3 +180,4 @@ module_exit(pid_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Task information via /proc/pid");
 MODULE_AUTHOR("B242270047");
+MODULE_VERSION("2.0");

@@ -1,0 +1,40 @@
+demo tree ready — Ctrl+C to stop
+test_01_status (src.ui.tests.test_api.ApiTest.test_01_status) ... ok
+test_02_pid1 (src.ui.tests.test_api.ApiTest.test_02_pid1) ... ok
+test_03_demo_tree_structure (src.ui.tests.test_api.ApiTest.test_03_demo_tree_structure) ... ok
+test_04_depth_zero_unexpanded (src.ui.tests.test_api.ApiTest.test_04_depth_zero_unexpanded) ... ok
+ok
+ok
+test_07_bad_depth (src.ui.tests.test_api.ApiTest.test_07_bad_depth) ... ok
+test_08_processes (src.ui.tests.test_api.ApiTest.test_08_processes) ... ok
+test_09_static_and_traversal (src.ui.tests.test_api.ApiTest.test_09_static_and_traversal) ... ok
+test_10_parallel_requests_consistent (src.ui.tests.test_api.ApiTest.test_10_parallel_requests_consistent)
+Зэрэг хүсэлтэд зөв хариу: v2 module-д нэг fd-ээр, v1-д серверийн mutex-ээр баталгаажна. ... ok
+test_11_depth_levels (src.ui.tests.test_api.ApiTest.test_11_depth_levels) ... ok
+test_12_calls_log (src.ui.tests.test_api.ApiTest.test_12_calls_log) ... ok
+test_13_demo_flags (src.ui.tests.test_api.ApiTest.test_13_demo_flags) ... ok
+test_14_spawn_and_zombie (src.ui.tests.test_api.ApiTest.test_14_spawn_and_zombie) ... ok
+test_15_signal_lifecycle (src.ui.tests.test_api.ApiTest.test_15_signal_lifecycle) ... ok
+ok
+test_23_expand_in_place (src.ui.tests.test_api.ApiTest.test_23_expand_in_place)
+expand=PID: depth=0 байхад ч тэр зангилааг нэг түвшнээр нээнэ, бусад нь навч хэвээр. ... ok
+test_24_expand_invalid (src.ui.tests.test_api.ApiTest.test_24_expand_invalid) ... ok
+test_25_state_flags (src.ui.tests.test_api.ApiTest.test_25_state_flags)
+v2: __state тоог битийн нэрээр тайлж task, мод, өвөг эцэгт өгнө. ... ok
+test_19_fallback_mode (src.ui.tests.test_api.ModeTest.test_19_fallback_mode) ... ok
+ok
+test_21_book_format_mismatch_502 (src.ui.tests.test_api.ModeTest.test_21_book_format_mismatch_502)
+ok
+test_22_book_mode_matches_module (src.ui.tests.test_api.ModeTest.test_22_book_mode_matches_module)
+/proc/pid_tree-гүй module-ийг дуурайна: task нь module-ээс, шатлал procfs-оос — module-тэй ижил. ... skipped '/proc/pid + /proc/pid_tree-тэй module шаардлагатай'
+test_17_book_line (src.ui.tests.test_api.ParserTest.test_17_book_line) ... ok
+test_18_tree_comm_with_spaces (src.ui.tests.test_api.ParserTest.test_18_tree_comm_with_spaces) ... ok
+test_18a_team_format (src.ui.tests.test_api.ParserTest.test_18a_team_format)
+Багийн src/kmod/pid.c: номын мөр + parent/child мөрүүд. ... ok
+test_26_decode_state (src.ui.tests.test_api.ParserTest.test_26_decode_state) ... ok
+test_27_parse_pid_range (src.ui.tests.test_api.ParserTest.test_27_parse_pid_range) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 5.809s
+
+OK (skipped=1)

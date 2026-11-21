@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<title>IV-2-2 Poster</title>
+<!-- PDF: msedge --headless --no-pdf-header-footer --print-to-pdf=IV-2-2_Poster.pdf poster.html (A3 хэвтээ) -->
+<style>
+  @page { size: 420mm 297mm; margin: 0; }
+  :root { --head: #bcd8f6; --navy: #13285a; --title: #1f3f8f; --panel: #e6e6e6; --box: #d4d4d4; --side: #cfe3fa; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { width: 420mm; height: 297mm; overflow: hidden; background: #fff; color: #111;
+         font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.3;
+         -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  b, strong, h1, h2, h3 { font-family: Arial, Helvetica, sans-serif; }
+  .page { display: grid; grid-template-columns: 68mm 1fr; grid-template-rows: 46mm 1fr; height: 297mm;
+          border: 1.2mm solid var(--navy); }
+  /* толгой */
+  .logo { background: #fff; border-right: 1.2mm solid var(--navy); border-bottom: 1.2mm solid var(--navy);
+          display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2mm; }
+  .logo img { height: 27mm; }
+  .logo b { font-size: 9.5pt; margin-top: 1.5mm; line-height: 1.15; }
+  header { background: var(--head); border-bottom: 1.2mm solid var(--navy); text-align: center; padding: 3mm 8mm 0; }
+  header h1 { margin: 0; font-size: 33pt; font-weight: 400; letter-spacing: .01em; }
+  header .sub { color: var(--title); font-weight: 700; font-size: 13.5pt; margin: 1mm 0 1.5mm; }
+  header .who { font-size: 10.5pt; }
+  /* зүүн багана */
+  aside { background: var(--side); border-right: 1.2mm solid var(--navy); padding: 4mm 4mm; display: flex; flex-direction: column; gap: 3.5mm; }
+
+  aside h2 { margin: 0 0 2mm; text-align: center; font-size: 17pt; color: var(--navy); }
+  aside .card { background: #fff; padding: 3mm; text-align: center; font-size: 11.5pt; }
+  aside .sum { text-align: center; font-size: 12.5pt; line-height: 1.35; }
+  aside .qr img { width: 36mm; image-rendering: pixelated; margin: 1.5mm 0; }
+  aside .card.concl { text-align: center; font-size: 11pt; line-height: 1.3; }
+  aside .qr small { display: block; font-size: 9pt; word-break: break-all; }
+  /* гол хэсэг */
+  .body { background: var(--panel); display: grid; grid-template-columns: 1fr 1fr 96mm; gap: 5mm; padding: 4mm 5mm 5mm; }
+  .colhead { text-align: center; color: var(--navy); font-size: 17pt; font-weight: 700; margin: 0 0 3mm; }
+  .intro { grid-column: 1 / 3; display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; align-content: start; }
+  .intro .colhead { grid-column: 1 / -1; margin-bottom: 0; }
+  .box { background: var(--box); padding: 3mm 4mm; }
+  .box h3 { margin: 0 0 1.5mm; font-size: 14.5pt; color: var(--navy); font-weight: 700; }
+  .box p { margin: 0 0 1.5mm; }
+  .box ul { margin: 0; padding-left: 5mm; }
+  .box li { margin-bottom: 1mm; }
+  code { font-family: inherit; font-size: 1em; font-weight: inherit; }
+  pre { font-family: Consolas, "Courier New", monospace !important; }
+  /* шийдлийн диаграм */
+  .diag { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 5mm; margin: 2mm 0 1mm; }
+  .diag div { background: #fff; border: .5mm solid var(--navy); border-radius: 2.5mm; padding: 2mm; text-align: center; font-size: 10.5pt; }
+  .diag div b { display: block; font-size: 11.5pt; font-weight: 700; }
+  .diag div.k { background: #e9f4ff; border-width: .8mm; }
+  .stack { display: flex; flex-direction: column; gap: 3mm; }
+  /* үр дүн */
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .tile { background: var(--navy); color: #fff; border-radius: 2.5mm; padding: 2mm 2mm; text-align: center; }
+  .tile b { display: block; font-size: 17pt; line-height: 1.1; }
+  .tile span { font-size: 9pt; line-height: 1.2; display: block; }
+  table { width: 100%; border-collapse: collapse; background: #fff; font-size: 10pt; margin-top: 2mm; }
+  th, td { padding: 1mm 1.6mm; border-bottom: .3mm solid #bbb; text-align: left; }
+  th { background: var(--navy); color: #fff; }
+  td.bad { color: #b0202e; font-weight: 700; }
+  td.ok { font-weight: 700; }
+  /* ажиллагаа */
+  .shots { display: flex; flex-direction: column; gap: 3mm; }
+  figure { margin: 0; background: var(--box); padding: 2.5mm; }
+  figure img { width: 100%; max-height: 64mm; object-fit: contain; object-position: top; display: block; background: #0f1720; }
+  figcaption { font-size: 9.5pt; margin-top: 1.5mm; }
+  .center-title { text-align: center; color: var(--navy); font-size: 16pt; font-weight: 700; margin: 0 0 1.5mm; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="logo">
+    <img src="../images/must_logo.png" alt="ШУТИС">
+    <b>МЭДЭЭЛЭЛ, ХОЛБООНЫ<br>ТЕХНОЛОГИЙН СУРГУУЛЬ</b>
+  </div>
+  <header>
+    <h1>LINUX KERNEL MODULE FOR TASK INFORMATION</h1>
+    <div class="sub">OSC 3-р бүлэг, Programming Project 2 · UI дүрслэл: Task hierarchy · F.CSM302 Үйлдлийн систем · Бие даалт 2 · IV-2-2</div>
+    <div class="who"><b>Гүйцэтгэсэн:</b> Б.Төгөлдөр /B242270047/ · С.Пүрэвтулга /B241940099/ · Л.Пүрэв-очир /B232270108/ · Б.Билгүүн /B190910014/ · Л.Тэмүүлэн /B210930842/ · Ч.Алтангэрэл /B231910003/<br>
+    <b>Удирдагч:</b> Г.Ганбат /F.CS10/, Үйлдлийн систем, ШУТИС-МХТС</div>
+  </header>
+
+  <aside>
+    <div>
+      <h2>ХУРААНГУЙ</h2>
+      <div class="sum">Kernel-ийн дотор байдаг процессын мэдээллийг (<code>task_struct</code>) <code>/proc/pid</code> виртуал файлаар гаргадаг Linux kernel module. PID бичихэд нэр, PID, төлөв, эцэг, хүүхдүүдийг буцаана. Вэб UI нь үүнийг процессын мод болгон зурж, fork, stop, zombie, wait-ийг бодит цагт харуулна. БД2-т self-review хийж synchronization, олон урсгал, зэрэг хандалтын 3 Major асуудлыг зассан.</div>
+    </div>
+    <div>
+      <h2>GITHUB</h2>
+      <div class="card qr">QR-аар код, README, тест, Report, Manual-ыг үзнэ
+        <img src="../images/qr_release_v2.png" alt="QR">
+        <small>github.com/Tugu8/os-bd1-IV-2-2-/releases/tag/v2.0.0</small>
+      </div>
+    </div>
+  </aside>
+
+  <div class="body">
+    <div class="intro">
+      <div class="colhead">СИСТЕМИЙН ТАНИЛЦУУЛГА</div>
+      <div class="stack">
+        <div class="box">
+          <h3>Асуудал</h3>
+          <p>Энгийн программ kernel-ийн санах ойд байгаа процессын бүтцийг шууд уншиж чадахгүй. Процессын мод fork, exit бүрт өөрчлөгддөг тул kernel доторх жагсаалтыг уншихдаа зөв түгжээ хэрэглэх ёстой. Олон хэрэглэгч зэрэг ашиглахад хариу холилдох эрсдэлтэй.</p>
+        </div>
+        <div class="box">
+          <h3>Шийдэл</h3>
+          <div class="diag">
+            <div><b>Браузер</b>SVG мод, төлөвийн өнгө, түүх</div>
+            <div><b>server.py</b>JSON API, нэг fd-ээр бичих, унших</div>
+            <div class="k"><b>/proc/pid · pid.ko</b>fd бүрт <code>pid_ctx</code>, номын формат</div>
+            <div class="k"><b>task_struct</b>RCU: <code>for_each_process</code>, <code>real_parent</code></div>
+          </div>
+          <p>Эхний мөр нь номын яг формат, дараагийн мөрүүд нь <code>parent</code>, <code>child</code>. UI module-ийн гаралтаас модыг зурна.</p>
+          <pre style="margin:2mm 0 0;background:#0f1720;color:#d8dee6;padding:2mm 3mm;font-size:9.5pt;line-height:1.3;white-space:pre-wrap">$ echo 99 &gt; /proc/pid; cat /proc/pid
+command = [mt_fork] pid = [99] state = [1]
+parent = [bash] ppid = [97]
+child = [mt_fork] pid = [102] state = [1]</pre>
+        </div>
+        <div>
+          <div class="center-title">ДҮГНЭЛТ</div>
+          <div class="box"><p>Номын шаардлага, интерфейс (echo, cat, гаралтын формат) хэвээр бөгөөд БД1-ийн бүх тест давсан. Self-review-ийн 3 Major асуудал v1 дээр тестээр илэрч, v2 дээр засагдсан. Хамгийн ноцтой нь fork/exit ачааллын үед kernel-ийг гацаадаг RCU-ийн алдаа байсан. Хязгаарлалт: хүүхэд хайх нь O(N), kernel 5.14-өөс шинэ хувилбар шаардлагатай.</p></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="box">
+          <h3>Туршилт ба дүрслэл</h3>
+          <ul>
+            <li>PID сонгох эсвэл жагсаалтаас хайх; гүн 0-6</li>
+            <li>Demo мод: S, R, T, Z төлөвтэй, 5 урсгалтай процессууд</li>
+            <li>STOP, CONT, TERM, zombie, wait товч: мод, өнгө шууд шинэчлэгдэнэ</li>
+            <li><code>__state</code>-ийг битийн нэрээр тайлна (8193 = INTERRUPTIBLE | FREEZABLE)</li>
+            <li>Module дуудлагын лог: бичих, унших бүрийн байт, хугацаа</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h3>Шүүмжийн мөрөөр сайжруулсан</h3>
+          <ul>
+            <li><b>RCU:</b> v1 ачааллын үед kernel-ийг гацаадаг байсан; хүүхдийг RCU-ээр хамгаалагдсан процессын жагсаалтаас олдог болсон</li>
+            <li><b>Олон урсгал:</b> аль ч урсгалын хүүхэд гарна, ppid = TGID</li>
+            <li><b>Зэрэг хандалт:</b> нээлт бүр өөрийн PID-тэй</li>
+            <li><b>UI:</b> PID 0 татгалзана, өвөг эцэг module-ээс</li>
+          </ul>
+        </div>
+        <div>
+          <div class="center-title">ҮР ДҮН</div>
+          <div class="tiles">
+  <div class="tile"><b>21 с &#8594; 90 с+</b><span>fork/exit ачаалал: v1 гацаж унасан, v2 17&#8239;550 уншилт алдаагүй</span></div>
+  <div class="tile"><b>7&#8239;789 &#8594; 0</b><span>зэрэг хандалтын зөрүү (20&#8239;000 асуулга, нэг fd)</span></div>
+  <div class="tile"><b>56 PASS, 0 FAIL</b><span>автомат тест v2 дээр (4+7+6+27+12)</span></div>
+  <div class="tile"><b>0.3 с</b><span>400 зангилаатай мод зурах хугацаа</span></div>
+</div>
+<table>
+  <tr><th>Тест</th><th>v1.0.1</th><th>v2.0</th></tr>
+  <tr><td>Урсгалын fork хийсэн хүүхэд</td><td class="bad">алга</td><td class="ok">гарсан</td></tr>
+  <tr><td>Хүүхдийн ppid</td><td class="bad">TID 314</td><td class="ok">TGID = ps</td></tr>
+  <tr><td>Нэг уншилт, 1025 процесс</td><td>5 мкс</td><td>47&#8211;56 мкс</td></tr>
+</table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="colhead">Ажиллагаа</div>
+      <div class="shots">
+        <figure><img src="../images/bd2_ui_demo_v2.png" alt="demo tree"><figcaption>Зураг 1. Demo мод: S, T, Z төлөв, 5 урсгалтай процесс; __state 8193 нь INTERRUPTIBLE | FREEZABLE гэж тайлагдсан, өвөг эцэг module-ээс.</figcaption></figure>
+        <figure><img src="../images/bd2_ui_mt_fork.png" alt="mt_fork"><figcaption>Зураг 2. 2 урсгалтай процесс: үндсэн бус урсгалын fork хийсэн хүүхэд (PID 102) гарсан. v1 дээр хүүхэдгүй харагддаг байсан.</figcaption></figure>
+        <figure><img src="../images/bd2_term_before_after.png" alt="before after"><figcaption>Зураг 3. Ижил скрипт: v1.0.1 (зүүн) R3-R5 FAIL, ачаалалд soft lockup; v2.0 (баруун) 6/6 PASS.</figcaption></figure>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

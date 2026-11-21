@@ -1,0 +1,15 @@
+== v1, N_proc ~small
+N_proc=25 pid=1 median=5.8us p95=11.7us n=3000
+N_proc=25 pid=121 median=5.0us p95=18.0us n=3000
+== v1, N_proc ~+1000 sleep
+N_proc=1025 pid=1 median=5.9us p95=10.8us n=3000
+N_proc=1025 pid=1127 median=5.0us p95=8.4us n=3000
+== v2, N_proc ~small
+N_proc=25 pid=1 median=7.9us p95=20.3us n=3000
+N_proc=25 pid=1134 median=7.4us p95=11.2us n=3000
+== v2, N_proc ~+1000 sleep
+N_proc=1025 pid=1 median=56.2us p95=190.3us n=3000
+N_proc=1025 pid=2140 median=47.3us p95=101.1us n=3000
+nodes 400 queries 400 elapsed_ms 317.7 children 602
+nodes 400 queries 400 elapsed_ms 291.1 children 602
+nodes 400 queries 400 elapsed_ms 274.5 children 602
