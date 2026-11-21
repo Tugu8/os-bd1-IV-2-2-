@@ -29,7 +29,7 @@ child = [vim] pid = [1400] state = [1]
 
 | Шүүмж | v1.0.1 | v2.0.0 |
 |---|---|---|
-| S1 `children` жагсаалтыг зөвхөн RCU-ийн дор гүйдэг | fork/exit ачаалалд 21 сек-д soft lockup (`pid_show`), OOM | RCU-ээр хамгаалагдсан `for_each_process`; 90 сек, 17 550 уншилт алдаагүй |
+| S1 `children` жагсаалтыг зөвхөн RCU-ийн дор гүйдэг | fork/exit ачаалалд `pid_show` дотор гацна: WSL2-д 21 сек-д soft lockup, bare-metal-д RCU stall, OOM, машин унасан | RCU-ээр хамгаалагдсан `for_each_process`; 90 сек алдаагүй (WSL2 17 550, bare-metal 38 673 уншилт) |
 | S2 олон урсгалтай процесс | урсгалын fork хийсэн хүүхэд алга, ppid = TID | хүүхэд гарна, ppid = TGID (`ps`-тэй ижил) |
 | S3 глобал PID | зэрэг ажиллахад нэг fd-ээр ч 7 789 / 20 000 зөрүү | нээлт бүр өөрийн PID-тэй: 0 / 20 000 |
 | S4-S6 UI | PID 0 зөвшөөрнө; `__state` тайлдаггүй; өвөг эцэг procfs-оос | засагдсан |
@@ -69,7 +69,7 @@ UI нь зөвхөн Python 3 стандарт сан, браузер ашигл
 
 | | Хувилбар |
 |---|---|
-| OS | Ubuntu 22.04 / 24.04 / 26.04 LTS, Debian; bare-metal эсвэл VM (туршсан: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic`; Kubuntu 26.04.1, kernel `7.0.0-38-generic`; БД2 хөгжүүлэлт: WSL2 Ubuntu 26.04, kernel `6.18.33.2`) |
+| OS | Ubuntu 22.04 / 24.04 / 26.04 LTS, Debian; bare-metal эсвэл VM (туршсан: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic` (БД1), `7.0.0-42-generic` (БД2); Kubuntu 26.04.1, kernel `7.0.0-38-generic`; БД2 хөгжүүлэлт: WSL2 Ubuntu 26.04, kernel `6.18.33.2`) |
 | Kernel API | `proc_ops` (≥ 5.6), `task_struct->__state` (≥ 5.14), `seq_file` |
 | Хөрвүүлэгч | gcc 13.3 (Ubuntu 24.04), gcc 15.2 (Kubuntu 26.04, WSL2), GNU make |
 | UI | Python ≥ 3.8 (туршсан 3.12, 3.14), орчин үеийн браузер (Edge, Chrome, Firefox) |
@@ -101,7 +101,7 @@ python3 src/ui/contract_check.py          # module ба UI-ийн интерфе
 
 Бүгдийг нэг дор (v1.0.1 ба v2-ийн өмнө/дараах харьцуулалттай): `bash tests/run_bd2.sh baremetal`. Үр дүн `tests/bd2_<нэр>/`-д хадгалагдана.
 
-Бодит үр дүн: БД2 `tests/bd2_wsl/` (WSL2 6.18, v1 ба v2), БД1 `tests/*/result_baremetal.txt` (Ubuntu 24.04), `tests/*/result_acer_kubuntu.txt` (Kubuntu 26.04), орчны мэдээлэл `tests/env_*.txt`. Нэгтгэсэн хүснэгтийг [Manual](docs/Manual.md)-ийн A7 болон [Final Report](report/IV-2-2_Final_Report.pdf)-ийн §5-аас харна уу.
+Бодит үр дүн: БД2 `tests/bd2_baremetal/` (Ubuntu 24.04.5, kernel 7.0.0-42, v1 ба v2), `tests/bd2_wsl/` (WSL2 6.18), БД1 `tests/*/result_baremetal.txt` (Ubuntu 24.04), `tests/*/result_acer_kubuntu.txt` (Kubuntu 26.04), орчны мэдээлэл `tests/env_*.txt`. Нэгтгэсэн хүснэгтийг [Manual](docs/Manual.md)-ийн A7 болон [Final Report](report/IV-2-2_Final_Report.pdf)-ийн §5-аас харна уу.
 
 ## Хувилбар ба ажлын заавар
 

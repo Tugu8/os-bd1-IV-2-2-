@@ -94,7 +94,7 @@
 
 \textbf{Гол сайжруулалт.} (1) Хүүхдийг RCU хамгаалдаггүй \code{task->children} жагсаалтаас биш, RCU-ээр хамгаалагдсан процессын жагсаалтаас олдог болсон. (2) Олон урсгалтай процессын бүх урсгалын хүүхдийг гаргаж, ppid нь \code{ps}-тэй ижил TGID болсон. (3) Нэг fd-ээр бичиж уншихад бусад процесс зэрэг бичсэн ч хариу холилдохгүй болсон. (4) UI \code{__state}-ийн битийг нэрээр нь тайлж, өвөг эцгийн гинжийг module-ээс авдаг болсон.
 
-\textbf{Үр дүн.} Засвараас өмнөх \code{v1.0.1} module fork/exit ачааллын үед 21 секундэд \code{pid_show} дотор гацаж (soft lockup), kernel санах ойгоор дутаж VM унасан. v2 ижил ачаалалд 90 секунд, 17\,550 уншилтыг алдаагүй давсан. Bare-metal Ubuntu 24.04 дээр ч v1 ижил газар (\code{pid_show}) гацаж машин унасан бол v2 90 секундэд 38\,673 уншилтыг давсан. Зэрэг хандалтын тестэд нэг fd-ээр 20\,000 асуулгаас 0 зөрүү гарсан (v1: 7\,789). БД1-ийн бүх тест v2 дээр дахин давсан: basic 4/4 (WSL2-д 1 SKIP), boundary 7/7, regression 6/6, UI API 27 (1 алгассан), UI мод 12/12, интерфейсийн шалгагч 18 OK, 0 FAIL.
+\textbf{Үр дүн.} Засвараас өмнөх \code{v1.0.1} module fork/exit ачааллын үед 21 секундэд \code{pid_show} дотор гацаж (soft lockup), kernel санах ойгоор дутаж VM унасан. v2 ижил ачаалалд 90 секунд, 17\,550 уншилтыг алдаагүй давсан. Bare-metal Ubuntu 24.04 дээр ч v1 ижил газар (\code{pid_show}) гацаж машин унасан бол v2 90 секундэд 38\,673 уншилтыг давсан. Зэрэг хандалтын тестэд нэг fd-ээр 20\,000 асуулгаас 0 зөрүү гарсан (v1: 7\,789). БД1-ийн бүх тест v2 дээр дахин давсан: basic 5/5 (WSL2-д 4/4, 1 SKIP), boundary 7/7, regression 6/6, UI API 27 OK (1 алгассан), UI мод 12/12, интерфейсийн шалгагч 18 OK, 0 FAIL.
 
 \newpage
 \tableofcontents
@@ -295,7 +295,7 @@ R6 fork/exit ачаалал, 3000 уншилт & VM унасан (\code{E_UNEXPE
 \code{tests/basic/test_basic.sh} & 5 PASS & 4 PASS, 1 SKIP\textsuperscript{a} & 5 PASS\\
 \code{tests/boundary/test_boundary.sh} & 7 PASS & 7 PASS & 7 PASS\\
 \code{tests/regression/test_regression.sh} & байгаагүй & 6 PASS & 6 PASS\\
-\code{src/ui/tests/test_api.py} & 24 OK, 1 алгассан & 28 OK, 1 алгассан\textsuperscript{b} & 28 OK, 1 алгассан\textsuperscript{b}\\
+\code{src/ui/tests/test_api.py} & 24 OK, 1 алгассан & 27 OK, 1 алгассан\textsuperscript{b} & 27 OK, 1 алгассан\textsuperscript{b}\\
 \code{src/ui/tests/test_tree.mjs} & 12 PASS & 12 PASS & 12 PASS\\
 \code{src/ui/contract_check.py} & 17 зөв, 1 анхааруулга & 18 OK, 1 WARN\textsuperscript{c}, 0 FAIL & 18 OK, 1 WARN\textsuperscript{c}, 0 FAIL\\
 \bottomrule
@@ -314,13 +314,13 @@ R6 fork/exit ачаалал, 3000 уншилт & VM унасан (\code{E_UNEXPE
 \textbf{Үзүүлэлт} & \textbf{Үр дүн}\\
 \midrule
 Major шүүмж (S1--S3) & 2 бүрэн, 1 хэсэгчлэн шийдсэн; гурвуулаа v1 дээр алдаатай, v2 дээр зөв гэж тестээр нотлогдсон\\
-fork/exit ачаалалд тэсвэрлэх & v1: 21 сек; v2: 90 сек+ (17\,550 уншилт)\\
+fork/exit ачаалалд тэсвэрлэх & v1: WSL2-д 21 сек, bare-metal-д машин унасан; v2: 90 сек+ (WSL2 17\,550, bare-metal 38\,673 уншилт)\\
 Зэрэг хандалт (нэг fd) & 0 / 20\,000 зөрүү\\
 Олон урсгалтай процесс & хүүхэд гарна, ppid = TGID = \code{ps}\\
 Нэг уншилт & 7--8 мкс (25 процесс), 47--56 мкс (1025 процесс)\\
 UI: 400 зангилаатай мод & 275--318 мс (~630 процесс, 400 module асуулга)\\
 UI: demo мод (8 зангилаа) & 5.8--7.9 мс\\
-Автомат тест (v2, WSL2) & 4 + 7 + 6 + 27 + 12 = 56 давсан, 0 унасан (2 алгассан)\\
+Автомат тест (v2) & bare-metal: 5 + 7 + 6 + 27 + 12 = 57 давсан, 0 унасан (1 алгассан); WSL2: 56 давсан, 0 унасан (2 алгассан)\\
 \bottomrule
 \end{tabular}
 \end{center}

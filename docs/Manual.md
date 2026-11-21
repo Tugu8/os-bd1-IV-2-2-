@@ -135,17 +135,17 @@ bash tests/run_bd2.sh baremetal            # v1.0.1 ба v2-ийг дараал�
 | `src/ui/tests/test_api.py` | 24 OK, 1 алгассан | хийгээгүй | 24 OK, 1 алгассан |
 | `src/ui/contract_check.py` | 17 зөв, 1 анхааруулга, 0 алдаа | хийгээгүй | 17 зөв, 1 анхааруулга, 0 алдаа |
 
-**БД2, v2.0 module** (2026-11-21, `tests/bd2_wsl/`):
+**БД2, v2.0 module** (2026-11-21, `tests/bd2_baremetal/`, `tests/bd2_wsl/`):
 
-| Тест | WSL2 Ubuntu 26.04, kernel 6.18.33.2 |
-|---|---|
-| `tests/basic/test_basic.sh` | 4 PASS, 1 SKIP (kernel thread, A8) |
-| `tests/boundary/test_boundary.sh` | 7 PASS, 0 FAIL |
-| `tests/regression/test_regression.sh` | 6 PASS, 0 FAIL (v1.0.1: R2-R5 FAIL, R6 үед VM унасан) |
-| `src/ui/tests/test_api.py` | 27 OK, 1 алгассан |
-| `src/ui/tests/test_tree.mjs` | 12 PASS |
-| `src/ui/contract_check.py` | 18 OK, 1 WARN, 0 FAIL |
-| `tests/regression/stress_compare.sh` (90 сек) | 17 550 уншилт, алдаагүй (v1.0.1: 21 сек-д soft lockup) |
+| Тест | Ubuntu 24.04.5 bare-metal, kernel 7.0.0-42 | WSL2 Ubuntu 26.04, kernel 6.18.33.2 |
+|---|---|---|
+| `tests/basic/test_basic.sh` | 5 PASS, 0 FAIL | 4 PASS, 1 SKIP (kernel thread, A8) |
+| `tests/boundary/test_boundary.sh` | 7 PASS, 0 FAIL | 7 PASS, 0 FAIL |
+| `tests/regression/test_regression.sh` | 6 PASS, 0 FAIL (v1.0.1: R2-R5 FAIL, R6 үед машин унасан) | 6 PASS, 0 FAIL (v1.0.1: R2-R5 FAIL, R6 үед VM унасан) |
+| `src/ui/tests/test_api.py` | 27 OK, 1 алгассан | 27 OK, 1 алгассан |
+| `src/ui/tests/test_tree.mjs` | 12 PASS | 12 PASS |
+| `src/ui/contract_check.py` | 18 OK, 1 WARN, 0 FAIL | 18 OK, 1 WARN, 0 FAIL |
+| `tests/regression/stress_compare.sh` (90 сек) | 38 673 уншилт, алдаагүй | 17 550 уншилт, алдаагүй (v1.0.1: 21 сек-д soft lockup) |
 
 WSL2-ийн kernel-ийг Microsoft өөр gcc-ээр хөрвүүлсэн тул symbol CRC зөрж, module-ийг `insmod -f`-ээр ачаалсан (kernel F taint). Bare-metal Ubuntu дээр энгийн `insmod` хангалттай.
 
@@ -211,7 +211,7 @@ UI-д зөвхөн Python 3 болон браузер хэрэгтэй. Нэмэ
 | Python | ≥ 3.8 (зөвхөн стандарт сан) |
 | Браузер | Edge, Chrome, Firefox (орчин үеийн хувилбар) |
 
-Туршсан орчин: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic`, gcc 13.3; Kubuntu 26.04.1, kernel `7.0.0-38-generic`, gcc 15.2 (хөгжүүлэлтэд WSL2 `6.6.87.2`, gcc 11.4). Module-ийг build хийхэд `build-essential`, `linux-headers-$(uname -r)` хэрэгтэй. Node ≥ 18 нь зөвхөн UI-ийн модны тестэд хэрэгтэй, заавал биш. Дэлгэрэнгүйг §A-аас харна уу.
+Туршсан орчин: Ubuntu 24.04.5 bare-metal, kernel `7.0.0-34-generic` (БД1) ба `7.0.0-42-generic` (БД2), gcc 13.3; Kubuntu 26.04.1, kernel `7.0.0-38-generic`, gcc 15.2 (хөгжүүлэлтэд WSL2 `6.6.87.2`, gcc 11.4). Module-ийг build хийхэд `build-essential`, `linux-headers-$(uname -r)` хэрэгтэй. Node ≥ 18 нь зөвхөн UI-ийн модны тестэд хэрэгтэй, заавал биш. Дэлгэрэнгүйг §A-аас харна уу.
 
 ### B2. Эхлүүлэх
 
