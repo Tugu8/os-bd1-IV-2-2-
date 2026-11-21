@@ -1,0 +1,20 @@
+=== R1 номын формат ===
+command = [bash] pid = [177890] state = [1]
+[PASS] R1 echo/cat номын формат, pid = [177890]
+=== R2 хувилбар ===
+module version: ?
+[FAIL] R2 /sys/module/pid/version = 2.0
+=== R3 зэрэг хандалт (4 процесс x 5000) ===
+workers=4 iterations=5000 (нийт 20000 асуулга нэг аргад)
+legacy (echo/cat шиг тусдаа open): mismatch 13964 / 20000
+samefd (нэг fd, lseek 0)         : mismatch 7905 / 20000
+[FAIL] R3 нэг fd-ээр: mismatch 0
+=== R4/R5 олон урсгалтай процесс ===
+tgid=177929 thread_tid=177930 child=177931
+command = [mt_fork] pid = [177929] state = [1]
+parent = [bash] ppid = [177928]
+[FAIL] R4 урсгалын fork хийсэн хүүхэд (177931) эцгийн жагсаалтад гарсан
+module ppid=177930  /proc/177931/stat ppid=177929  (thread tid=177930)
+[FAIL] R5 хүүхдийн ppid = TGID (177929), /proc/stat-тай ижил
+=== R6 fork/exit ачаалал ===
+[FAIL] R6 v1.0.1: fork/exit ачааллын үед pid_show (children жагсаалт) RCU stall, OOM, машин унасан - crash_v1_R6.txt

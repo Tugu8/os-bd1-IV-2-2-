@@ -1,0 +1,50 @@
+# v1.0.1 bare-metal R6 (fork/exit ачаалал) - машин унасан
+# kernel 7.0.0-42-generic, Ubuntu 24.04, Secure Boot off
+# Эх сурвалж: journalctl -k -b -1 (өмнөх boot), hostname-ийг HOST болгосон
+# Хугацаа: v1 ачаалсан 17:19:51 -> анхны OOM 17:20:15 (+24 сек) -> RCU stall 17:20:53 -> сүүлийн log 17:22:35 -> дахин ачаалсан 17:31
+# Нийт OOM-killer дуудалт: 26
+
+## module ачаалалт
+Nov 21 17:19:51.312735 HOST kernel: /proc/pid removed
+Nov 21 17:19:51.347697 HOST kernel: /proc/pid created
+
+## анхны OOM
+Nov 21 17:20:15.176894 HOST kernel: true invoked oom-killer: gfp_mask=0x440dc0(GFP_KERNEL_ACCOUNT|__GFP_ZERO|__GFP_COMP), order=0, oom_score_adj=200
+Nov 21 17:20:15.283827 HOST kernel: Out of memory: Killed process 3365 (chrome) total-vm:1523531800kB, anon-rss:600kB, file-rss:1792kB, shmem-rss:4kB, UID:1000 pgtables:3736kB oom_score_adj:300
+Nov 21 17:20:15.285817 HOST kernel: bash invoked oom-killer: gfp_mask=0x440dc0(GFP_KERNEL_ACCOUNT|__GFP_ZERO|__GFP_COMP), order=0, oom_score_adj=200
+
+## RCU stall ба stack
+Nov 21 17:20:53.609788 HOST kernel: rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+Nov 21 17:20:53.610130 HOST kernel: rcu:         Tasks blocked on level-0 rcu_node (CPUs 0-11): P179325
+Nov 21 17:20:53.610193 HOST kernel: rcu:         (detected by 11, t=60002 jiffies, g=149565, q=756603 ncpus=12)
+Nov 21 17:20:53.610822 HOST kernel: task:head            state:R  running task     stack:0     pid:179325 tgid:179325 ppid:2072   task_flags:0x400000 flags:0x0008080a
+Nov 21 17:20:53.611122 HOST kernel: Call Trace:
+Nov 21 17:20:53.611292 HOST kernel:  <TASK>
+Nov 21 17:20:53.611583 HOST kernel:  __schedule+0x2bd/0x640
+Nov 21 17:20:53.611709 HOST kernel:  ? irqentry_exit+0x34/0x640
+Nov 21 17:20:53.611758 HOST kernel:  ? irqentry_exit+0x34/0x640
+Nov 21 17:20:53.611796 HOST kernel:  ? irqentry_exit+0x34/0x640
+Nov 21 17:20:53.611839 HOST kernel:  irqentry_exit+0x34/0x640
+Nov 21 17:20:53.611894 HOST kernel:  ? sysvec_apic_timer_interrupt+0x57/0xc0
+Nov 21 17:20:53.612012 HOST kernel:  ? asm_sysvec_apic_timer_interrupt+0x1b/0x20
+Nov 21 17:20:53.612251 HOST kernel:  ? __task_pid_nr_ns+0x68/0x100
+Nov 21 17:20:53.612425 HOST kernel:  ? pid_show+0xc5/0x120 [pid]
+Nov 21 17:20:53.612789 HOST kernel:  ? seq_read_iter+0x134/0x4d0
+Nov 21 17:20:53.613056 HOST kernel:  ? seq_read+0x11d/0x160
+Nov 21 17:20:53.613098 HOST kernel:  ? proc_reg_read+0x69/0xa0
+Nov 21 17:20:53.613147 HOST kernel:  ? vfs_read+0xba/0x390
+Nov 21 17:20:53.613184 HOST kernel:  ? ksys_read+0x71/0xf0
+Nov 21 17:20:53.613223 HOST kernel:  ? __x64_sys_read+0x19/0x30
+Nov 21 17:20:53.613387 HOST kernel:  ? x64_sys_call+0x2554/0x26e0
+Nov 21 17:20:53.613429 HOST kernel:  ? do_syscall_64+0xd9/0x5a0
+Nov 21 17:20:53.613583 HOST kernel:  ? lruvec_stat_mod_folio+0x8b/0xf0
+Nov 21 17:20:53.613625 HOST kernel:  ? set_ptes.isra.0+0x3b/0x90
+Nov 21 17:20:53.613673 HOST kernel:  ? do_anonymous_page+0x106/0x480
+Nov 21 17:20:53.613712 HOST kernel:  ? __pte_offset_map+0x1c/0x140
+Nov 21 17:20:53.613759 HOST kernel:  ? handle_pte_fault+0x1df/0x200
+Nov 21 17:20:53.613953 HOST kernel:  ? __handle_mm_fault+0x56a/0x760
+
+## сүүлийн мөрүүд
+Nov 21 17:22:03.278192 HOST kernel: Out of memory: Killed process 1025 (avahi-daemon) total-vm:8692kB, anon-rss:0kB, file-rss:8kB, shmem-rss:0kB, UID:108 pgtables:56kB oom_score_adj:0
+Nov 21 17:22:03.775350 HOST kernel: Out of memory: Killed process 1443 (rtkit-daemon) total-vm:22956kB, anon-rss:0kB, file-rss:8kB, shmem-rss:0kB, UID:117 pgtables:56kB oom_score_adj:0
+Nov 21 17:22:35.213756 HOST kernel: Out of memory: Killed process 1058 (cron) total-vm:9436kB, anon-rss:0kB, file-rss:8kB, shmem-rss:0kB, UID:0 pgtables:60kB oom_score_adj:0
