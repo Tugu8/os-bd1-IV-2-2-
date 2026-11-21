@@ -1,0 +1,24 @@
+mt_fork.c: In function ‘worker’:
+mt_fork.c:23:27: warning: unused parameter ‘arg’ [-Wunused-parameter]
+   23 | static void *worker(void *arg)
+      |                     ~~~~~~^~~
+=== R1 номын формат ===
+command = [bash] pid = [281] state = [1]
+[PASS] R1 echo/cat номын формат, pid = [281]
+=== R2 хувилбар ===
+module version: ?
+[FAIL] R2 /sys/module/pid/version = 2.0
+=== R3 зэрэг хандалт (4 процесс x 5000) ===
+workers=4 iterations=5000 (нийт 20000 асуулга нэг аргад)
+legacy (echo/cat шиг тусдаа open): mismatch 14893 / 20000
+samefd (нэг fd, lseek 0)         : mismatch 7789 / 20000
+[FAIL] R3 нэг fd-ээр: mismatch 0
+=== R4/R5 олон урсгалтай процесс ===
+tgid=313 thread_tid=314 child=315
+command = [mt_fork] pid = [313] state = [1]
+parent = [bash] ppid = [312]
+[FAIL] R4 урсгалын fork хийсэн хүүхэд (315) эцгийн жагсаалтад гарсан
+module ppid=314  /proc/315/stat ppid=313  (thread tid=314)
+[FAIL] R5 хүүхдийн ppid = TGID (313), /proc/stat-тай ижил
+=== R6 fork/exit ачаалал ===
+(R6 үеэр WSL2 VM унасан: E_UNEXPECTED. Kernel-ийн мэдэгдлийг дахин үүсгэж stress_v1.txt-д хадгалсан: soft lockup, pid_show+0xda, OOM)

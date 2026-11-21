@@ -1,0 +1,20 @@
+module: /root/iv22/src/kmod/pid.ko (2.0)
+reads=1000 t=6
+reads=2000 t=11
+reads=3000 t=16
+reads=4000 t=21
+reads=5000 t=26
+reads=6000 t=31
+reads=7000 t=36
+reads=8000 t=41
+[   48.493646] hv_balloon: Max. dynamic memory size: 3938 MB
+reads=9000 t=46
+reads=10000 t=51
+reads=11000 t=56
+reads=12000 t=61
+reads=13000 t=66
+reads=14000 t=71
+reads=15000 t=76
+reads=16000 t=82
+reads=17000 t=88
+survived 90s, reads=17550

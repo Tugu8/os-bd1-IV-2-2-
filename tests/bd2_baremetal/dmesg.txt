@@ -1,0 +1,5 @@
+[  301.461497] /proc/pid created
+[  318.804040] /proc/pid removed
+[  318.836680] /proc/pid created
+[  409.331502] /proc/pid removed
+[  409.392078] /proc/pid created

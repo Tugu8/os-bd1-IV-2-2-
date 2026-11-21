@@ -1,0 +1,24 @@
+=== R1 номын формат ===
+command = [bash] pid = [22] state = [1]
+[PASS] R1 echo/cat номын формат, pid = [22]
+=== R2 хувилбар ===
+module version: 2.0
+[PASS] R2 /sys/module/pid/version = 2.0
+=== R3 зэрэг хандалт (4 процесс x 5000) ===
+workers=4 iterations=5000 (нийт 20000 асуулга нэг аргад)
+legacy (echo/cat шиг тусдаа open): mismatch 13094 / 20000
+samefd (нэг fd, lseek 0)         : mismatch 0 / 20000
+[PASS] R3 нэг fd-ээр: mismatch 0
+=== R4/R5 олон урсгалтай процесс ===
+tgid=44 thread_tid=45 child=46
+command = [mt_fork] pid = [44] state = [1]
+parent = [bash] ppid = [43]
+child = [mt_fork] pid = [46] state = [1]
+[PASS] R4 урсгалын fork хийсэн хүүхэд (46) эцгийн жагсаалтад гарсан
+module ppid=44  /proc/46/stat ppid=44  (thread tid=45)
+[PASS] R5 хүүхдийн ppid = TGID (44), /proc/stat-тай ижил
+=== R6 fork/exit ачаалал ===
+амжилттай уншилт: 3000 / 3000
+[PASS] R6 3000 уншилт, dmesg-д BUG/WARNING алга
+
+Нийт: PASS=6 FAIL=0

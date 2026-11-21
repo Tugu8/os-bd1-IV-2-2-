@@ -58,9 +58,37 @@ STATE_NAMES = {
     "I": "idle", "P": "parked", "W": "waking", "K": "wakekill",
 }
 
-# Module нэг л ГЛОБАЛ PID хадгалдаг. Хоёр хүсэлт зэрэг "бичих → унших" хийвэл
-# нэг нь нөгөөгийн PID-ийг уншина (уралдааны нөхцөл). Тиймээс бичих+унших
-# хоёрыг энэ мутексээр нэг эгзэгтэй мужид оруулна.
+# task_struct->__state-ийн битүүд (include/linux/sched.h, kernel 6.x-7.0).
+# Module номын дагуу __state-ийг тоогоор хэвлэдэг тул UI-д нэрээр нь тайлна.
+STATE_BITS = [
+    (0x0001, "TASK_INTERRUPTIBLE"), (0x0002, "TASK_UNINTERRUPTIBLE"),
+    (0x0004, "__TASK_STOPPED"), (0x0008, "__TASK_TRACED"), (0x0010, "EXIT_DEAD"),
+    (0x0020, "EXIT_ZOMBIE"), (0x0040, "TASK_PARKED"), (0x0080, "TASK_DEAD"),
+    (0x0100, "TASK_WAKEKILL"), (0x0200, "TASK_WAKING"), (0x0400, "TASK_NOLOAD"),
+    (0x0800, "TASK_NEW"), (0x1000, "TASK_RTLOCK_WAIT"), (0x2000, "TASK_FREEZABLE"),
+    (0x4000, "__TASK_FREEZABLE_UNSAFE"), (0x8000, "TASK_FROZEN"),
+]
+
+
+def decode_state(value):
+    """__state тоо → битийн нэрс. 0 = TASK_RUNNING, мэдэгдэхгүй бит → 0x... хэлбэрээр."""
+    if value is None or value < 0:
+        return []
+    if value == 0:
+        return ["TASK_RUNNING"]
+    names, rest = [], value
+    for bit, name in STATE_BITS:
+        if value & bit:
+            names.append(name)
+            rest &= ~bit
+    if rest:
+        names.append(hex(rest))
+    return names
+
+
+# v2 module нээлт (fd) бүрт PID-ээ тусад нь хадгалдаг тул нэг fd-ээр "бичих, lseek(0),
+# унших" нь бусад процессоос үл хамаарна. Мутекс нь зөвхөн v1 module (нэг глобал PID)-тэй
+# ажиллах үед уралдааны нөхцөлөөс хамгаалах зорилгоор үлдсэн.
 _module_lock = threading.Lock()
 
 
@@ -79,15 +107,17 @@ def _call(op, path, data, nbytes, t0):
 
 
 def parse_pid(text):
-    """Хэрэглэгчийн оролтыг шалгана: зөвхөн цифр, 0..PID_MAX_LIMIT."""
+    """Хэрэглэгчийн оролтыг шалгана: зөвхөн цифр, 1..PID_MAX_LIMIT (module-тэй ижил)."""
     if text is None or text.strip() == "":
         raise TaskError(400, "PID оруулаагүй байна")
     text = text.strip()
     if not text.isdigit():
         raise TaskError(400, f"Буруу оролт '{text}': эерэг бүхэл тоо оруулна уу")
     pid = int(text)
+    if pid == 0:
+        raise TaskError(400, "PID 0 (swapper/idle) нь хэрэглэгчийн процесс биш, 1-ээс эхэлнэ")
     if pid > PID_MAX_LIMIT:
-        raise TaskError(400, f"PID {pid} нь хязгаараас (0..{PID_MAX_LIMIT}) хэтэрсэн")
+        raise TaskError(400, f"PID {pid} нь хязгаараас (1..{PID_MAX_LIMIT}) хэтэрсэн")
     return pid
 
 
@@ -182,17 +212,31 @@ def parse_relation_lines(lines):
 
 
 def _write_read_book(pid, calls):
-    """PID-ийг /proc/pid руу бичээд гаралтыг (номын мөр + нэмэлт мөрүүд) уншина. _module_lock дотор."""
+    """PID-ийг /proc/pid руу бичээд гаралтыг (номын мөр + нэмэлт мөрүүд) уншина.
+
+    Нэг fd-ээр: open(O_RDWR), write, lseek(0), read. v2 module энэ fd-ээр бичсэн PID-ийн
+    мэдээллийг буцаадаг тул өөр процесс зэрэг /proc/pid руу бичсэн ч хариу холилдохгүй.
+    """
+    data = f"{pid}\n".encode()
     t = time.perf_counter()
     try:
-        with open(PROC_PID, "w") as f:
-            f.write(f"{pid}\n")
+        fd = os.open(PROC_PID, os.O_RDWR)
     except OSError as e:
-        raise TaskError(400, f"Module оролтыг татгалзлаа: {e.strerror}")
-    calls.append(_call("write", PROC_PID, f"{pid}\\n", len(f"{pid}\n"), t))
-    t = time.perf_counter()
-    with open(PROC_PID) as f:
-        out = f.read().strip()
+        raise TaskError(503, f"/proc/pid нээгдсэнгүй: {e.strerror}")
+    try:
+        try:
+            os.write(fd, data)
+        except OSError as e:
+            raise TaskError(400, f"Module оролтыг татгалзлаа: {e.strerror}")
+        calls.append(_call("write", PROC_PID, f"{pid}\\n", len(data), t))
+        t = time.perf_counter()
+        os.lseek(fd, 0, os.SEEK_SET)
+        chunks = []
+        while chunk := os.read(fd, 65536):
+            chunks.append(chunk)
+    finally:
+        os.close(fd)
+    out = b"".join(chunks).decode(errors="replace").strip()
     calls.append(_call("read", PROC_PID, out.split("\n", 1)[0], len(out), t))
     return out
 
@@ -206,7 +250,7 @@ class ModuleBackend:
     def available():
         return os.path.exists(PROC_PID) and os.path.exists(PROC_TREE)
 
-    def query(self, pid):
+    def query(self, pid, with_ancestors=True):
         calls = []                                # UI-ийн "Module дуудлагын лог"-д
         with _module_lock:
             book_line = _write_read_book(pid, calls).split("\n", 1)[0]
@@ -267,7 +311,7 @@ class ProcfsBackend:
         children = sorted((s for s in self._snapshot if s["ppid"] == pid), key=lambda n: n["pid"])
         return task, ancestors, children
 
-    def query(self, pid):
+    def query(self, pid, with_ancestors=True):
         task, ancestors, children = self._relations(pid)
         book = f"command = [{task['comm']}] pid = [{pid}] state = [{task['state_char']}]"
         return {"book_line": book + "   (fallback)", "task": task, "ancestors": ancestors,
@@ -293,7 +337,33 @@ class BookBackend(ProcfsBackend):
     def available():
         return os.path.exists(PROC_PID) and not os.path.exists(PROC_TREE)
 
-    def query(self, pid):
+    def _module_ancestors(self, parent):
+        """parent мөрөөс эхлэн module-ийг дахин дахин асууж өвөг эцгүүдийг (эцэг эхэнд) цуглуулна."""
+        ancestors, seen, n = [], set(), 0
+        while parent and parent["pid"] > 0 and parent["pid"] not in seen and len(ancestors) < 64:
+            ppid = parent["pid"]
+            seen.add(ppid)
+            try:
+                with _module_lock:
+                    out = _write_read_book(ppid, [])
+            except TaskError:
+                break
+            n += 1
+            lines = out.splitlines()
+            book = parse_book_line(lines[0]) if lines else None
+            if book is None:                      # энэ хооронд дууссан эсвэл формат өөр
+                break
+            nxt, _, _ = parse_relation_lines(lines[1:])
+            s = self._stat(ppid) or {
+                "pid": ppid, "tgid": ppid, "ppid": nxt["pid"] if nxt else 0, "state_char": "?",
+                "state_name": "?", "uid": -1, "threads": 0}
+            ancestors.append(dict(s, comm=book["comm"], state=book["state"]))
+            if ppid == 1:
+                break
+            parent = nxt
+        return ancestors, n
+
+    def query(self, pid, with_ancestors=True):
         calls = []
         with _module_lock:
             out = _write_read_book(pid, calls)
@@ -333,10 +403,17 @@ class BookBackend(ProcfsBackend):
         if unknown:
             warnings.append(f"/proc/pid-д танигдаагүй {len(unknown)} мөр: '{unknown[0][:60]}'")
         if source == "module":
-            self.name = "kernel module (/proc/pid: task + parent/child мөр) + procfs (uid, урсгал, өвөг эцэг)"
+            self.name = "kernel module (/proc/pid: task, parent, child мөр) + procfs (uid, урсгал)"
         calls.append(_call("read", f"/proc/{pid}/stat ({'uid, урсгал' if source == 'module' else 'шатлал'}, procfs)",
                            f"ppid={task['ppid']} хүүхэд={len(children)}", 0, t))
-        note = ("# хүүхдүүд module-ийн child мөрөөс; uid, урсгал, өвөг эцгийг /proc/<pid>/stat-аас уншив"
+        if source == "module" and with_ancestors:
+            # Өвөг эцгийн гинжийг мөн module-ээс: parent мөрийн PID-ийг дахин бичиж PID 1 хүртэл.
+            t = time.perf_counter()
+            mod_anc, n = self._module_ancestors(parent)
+            if mod_anc or not ancestors:
+                ancestors = mod_anc
+            calls.append(_call("read", PROC_PID, f"өвөг эцэг: {n} удаа бичих+унших", 0, t))
+        note = ("# task, эцэг, хүүхэд, өвөг эцгийн гинж module-ээс; uid, урсгалыг /proc/<pid>/stat-аас уншив"
                 if source == "module" else
                 "# эцэг/хүүгийн холбоог /proc/<pid>/stat-аас уншив (/proc/pid_tree алга)")
         return {"book_line": book_line, "task": task, "ancestors": ancestors,
@@ -364,6 +441,7 @@ def build_tree(backend, pid, depth, extra=frozenset()):
 
     def expand(info, level):
         node = dict(info["task"])
+        node["state_flags"] = decode_state(node.get("state"))
         node["demo"] = Demo.is_member(node["pid"])
         node["truncated"] = bool(info["summary"].get("truncated"))
         node["child_count"] = len(info["children"])
@@ -372,7 +450,7 @@ def build_tree(backend, pid, depth, extra=frozenset()):
             # depth=0: зөвхөн шууд хүүхдүүд (асуухгүй), depth=1: тэдний хүүхдүүд ч гэх мэт
             if (level <= depth or child["pid"] in extra) and counter["nodes"] < MAX_NODES:
                 try:
-                    sub = backend.query(child["pid"])
+                    sub = backend.query(child["pid"], with_ancestors=False)
                     counter["queries"] += 1
                 except TaskError:          # хүү процесс энэ хооронд дууссан
                     continue
@@ -380,6 +458,7 @@ def build_tree(backend, pid, depth, extra=frozenset()):
                 node["children"].append(expand(sub, level + 1))
             else:
                 leaf = dict(child)
+                leaf["state_flags"] = decode_state(leaf.get("state"))
                 leaf["children"], leaf["unexpanded"] = [], True
                 leaf["demo"] = Demo.is_member(leaf["pid"])
                 node["children"].append(leaf)
@@ -520,7 +599,9 @@ class Handler(BaseHTTPRequestHandler):
                 root, tree, counter = build_tree(backend, pid, depth, expand)
                 self._send(200, {
                     "backend": backend.name, "mode": backend.mode, "book_line": root["book_line"],
-                    "task": root["task"], "ancestors": root["ancestors"], "tree": tree,
+                    "task": dict(root["task"], state_flags=decode_state(root["task"].get("state"))),
+                    "ancestors": [dict(a, state_flags=decode_state(a.get("state"))) for a in root["ancestors"]],
+                    "tree": tree,
                     "summary": root["summary"], "raw": root["raw"], "depth": depth,
                     "expand": sorted(expand),
                     "nodes": counter["nodes"], "queries": counter["queries"],

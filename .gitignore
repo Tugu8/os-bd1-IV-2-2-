@@ -15,3 +15,7 @@ __pycache__/
 .venv/
 .vscode/
 .idea/
+
+# regression тестийн C программ
+tests/regression/fd_isolation
+tests/regression/mt_fork

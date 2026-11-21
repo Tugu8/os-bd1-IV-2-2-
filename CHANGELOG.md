@@ -4,6 +4,28 @@
 
 ## [Unreleased]
 
+## [2.0.0] - БД2
+
+Шүүмжлэх баг (IV-2-5) Review ирүүлээгүй тул self-review (`review/IV-2-2_Self_Review.md`, S1-S10) хийж засвар оруулсан.
+
+### Засвар
+- **kmod** (S1): хүүхдийг `task->children`-оос биш, RCU-ээр хамгаалагдсан `for_each_process`-оор (`real_parent`-ийн TGID-ээр шүүж) олно. `tasklist_lock` module-д export хийгдээгүй тул ашиглах боломжгүй байсан. v1.0.1 fork/exit ачаалалд `pid_show` дотор гацаж байсан (WSL2: soft lockup, bare-metal: RCU stall, OOM, машин унасан).
+- **kmod** (S2): олон урсгалтай процессын аль ч урсгалын fork хийсэн хүүхдийг хэвлэнэ; `ppid` нь эцгийн TGID (`task_tgid_vnr`), `ps`-тэй ижил.
+- **ui** (S4): PID 0-ийг серверт татгалзана (module-тэй ижил 1..4194304).
+
+### Нэмсэн
+- **kmod** (S3): нээлт бүрт `struct pid_ctx`; нэг fd-ээр `write`, `lseek(0)`, `read` хийвэл бусад процессоос тусгаарлагдана. `MODULE_VERSION("2.0")`.
+- **ui** (S5): `decode_state()`, мэдээллийн хүснэгт ба tooltip-д `__state`-ийн битийн нэр.
+- **ui** (S6): "book" горимд өвөг эцгийн гинжийг module-ийн `parent` мөрөөр PID 1 хүртэл асууна.
+- **ui** (S3): сервер `/proc/pid`-ийг нэг fd-ээр (`O_RDWR`) уншина.
+- **tests**: `tests/regression/` (R1-R6: `fd_isolation.c`, `mt_fork.c`, fork/exit ачаалал), `tests/run_bd2.sh` (v1.0.1 ба v2-ийн өмнө/дараах харьцуулалт); UI API тест 25-27.
+- **tests** (B242270047): үр дүн `tests/bd2_wsl/` (WSL2 6.18) ба `tests/bd2_baremetal/` (Ubuntu 24.04.5, kernel 7.0.0-42): v2 дээр basic 5/5, boundary 7/7, regression 6/6, UI API 27 OK (1 алгассан), UI мод 12/12, contract 18 OK 0 FAIL; ачааллын тест 90 сек, 38 673 уншилт алдаагүй.
+- **report**: `report/IV-2-2_Final_Report.pdf`, `docs/IV-2-2_Poster.pdf`.
+
+### Өөрчилсөн
+- **ui** (S7): `contract_check.py` гаралт OK / WARN / FAIL; нэг fd-ийн шалгалт нэмсэн.
+- **docs** (S7): README (БД2, шүүмжийн баг, Ubuntu 24.04, screenshot, regression), Manual (A6.1, A9, B7, B8).
+
 ## [1.0.1] - 2026-10-28
 
 > PR #22-ын засвар (тэмдэгт хассан тайлан, Manual) нь `v1.0.1` tag-д ороогүй; Release-ийн хавсралт PDF-үүдийг 2026-10-28-нд PR #22-ын дараах хувилбараар сольсон.

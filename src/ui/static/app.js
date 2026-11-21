@@ -255,6 +255,7 @@ function render(d, diff) {
   const rows = [
     ["Command", t.comm], ["PID", t.pid], ["TGID", t.tgid], ["PPID", t.ppid],
     ["State", `${t.state_char} — ${STATES[t.state_char] || t.state_name}` + (t.state >= 0 ? `  (__state = ${t.state})` : "")],
+    ["__state битүүд", (t.state_flags && t.state_flags.length) ? t.state_flags.join(" | ") : "—"],
     ["UID", t.uid], ["Урсгал (threads)", t.threads],
     ["Өвөг эцэг", d.summary.ancestors], ["Шууд хүүхэд", d.summary.children + (d.summary.truncated ? "+ (тасалсан)" : "")],
   ];
@@ -419,7 +420,7 @@ function drawNode(parent, n, x, y, { selected = false, ancestor = false, isNew =
     "aria-label": `${n.comm}, PID ${n.pid}, төлөв ${STATES[n.state_char] || n.state_char}`,
   });
   if (toggle) { g.dataset.toggle = toggle; g.setAttribute("aria-expanded", toggle === "−"); }
-  g.append(el("title", {}, `${n.comm}\nPID ${n.pid}  PPID ${n.ppid}  TGID ${n.tgid}\nState ${n.state_char} (${STATES[n.state_char] || "?"})\nUID ${n.uid}  threads ${n.threads}` + (n.demo ? "\n(demo процесс)" : "")));
+  g.append(el("title", {}, `${n.comm}\nPID ${n.pid}  PPID ${n.ppid}  TGID ${n.tgid}\nState ${n.state_char} (${STATES[n.state_char] || "?"})` + (n.state >= 0 ? `\n__state = ${n.state} (${(n.state_flags || []).join(" | ")})` : "") + `\nUID ${n.uid}  threads ${n.threads}` + (n.demo ? "\n(demo процесс)" : "")));
   if (isNew || change) g.append(el("rect", { class: "halo", x: -4, y: -4, width: NODE_W + 8, height: NODE_H + 8, rx: 11 }));
   g.append(el("rect", { class: "box", width: NODE_W, height: NODE_H, rx: 8, stroke: color }));
   g.append(el("rect", { class: "band", width: 6, height: NODE_H, rx: 3, fill: color }));

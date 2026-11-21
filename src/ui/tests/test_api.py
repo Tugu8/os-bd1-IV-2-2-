@@ -87,7 +87,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(b["queries"], 1)
 
     def test_05_invalid_input(self):
-        for bad in ["abc", "-5", "1.5", "", "99999999"]:
+        for bad in ["abc", "-5", "1.5", "", "99999999", "0"]:      # 0: module EINVAL, UI ч татгалзана (v2)
             with self.subTest(pid=bad):
                 s, b = call(self.base, f"/api/task?pid={urllib.request.quote(bad)}")
                 self.assertEqual(s, 400, b)
@@ -115,7 +115,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(s, 404)
 
     def test_10_parallel_requests_consistent(self):
-        """Module нэг глобал PID хадгалдаг — серверийн mutex зэрэг хүсэлтэд зөв хариу баталгаажуулна."""
+        """Зэрэг хүсэлтэд зөв хариу: v2 module-д нэг fd-ээр, v1-д серверийн mutex-ээр баталгаажна."""
         results = {}
 
         def worker(pid):
@@ -153,7 +153,10 @@ class ApiTest(unittest.TestCase):
         elif MODE == "book":
             self.assertEqual([(c["op"], c["path"]) for c in b["calls"]][:2],
                              [("write", "/proc/pid"), ("read", "/proc/pid")])
-            self.assertEqual(len(b["calls"]), 3)                   # + procfs-оос шатлал
+            # + procfs (uid, урсгал) + v2: өвөг эцгийн гинжийг module-ээс асуусан мөр
+            self.assertEqual(len(b["calls"]), 4)
+            self.assertIn("өвөг эцэг", b["calls"][3]["data"])
+            self.assertEqual([a["pid"] for a in b["ancestors"]][-1], 1)
         else:
             self.assertEqual(len(b["calls"]), 1)
 
@@ -230,6 +233,19 @@ class ApiTest(unittest.TestCase):
                 self.assertIn("expand", b["error"])
 
 
+    def test_25_state_flags(self):
+        """v2: __state тоог битийн нэрээр тайлж task, мод, өвөг эцэгт өгнө."""
+        s, b = call(self.base, f"/api/task?pid={self.root}&depth=1")
+        self.assertEqual(s, 200)
+        kids = {c["comm"]: c for c in b["tree"]["children"]}
+        if MODE != "fallback":
+            self.assertEqual(b["task"]["state_flags"], server.decode_state(b["task"]["state"]))
+            self.assertIn("__TASK_STOPPED", kids["demo_stopped"]["state_flags"])
+            self.assertTrue(all("state_flags" in a for a in b["ancestors"]))
+        else:
+            self.assertEqual(b["task"]["state_flags"], [])
+
+
 class ParserTest(unittest.TestCase):
     """Module-ийн гаралтыг задлах цэвэр функцууд (сервер шаардлагагүй)."""
 
@@ -243,6 +259,22 @@ class ParserTest(unittest.TestCase):
         for bad in ("", "1395", "command = [bash] pid = [x] state = [1]", "pid = [1] state = [1]"):
             with self.subTest(line=bad):
                 self.assertIsNone(p(bad))
+
+    def test_26_decode_state(self):
+        d = server.decode_state
+        self.assertEqual(d(0), ["TASK_RUNNING"])
+        self.assertEqual(d(1), ["TASK_INTERRUPTIBLE"])
+        self.assertEqual(d(8193), ["TASK_INTERRUPTIBLE", "TASK_FREEZABLE"])        # sleep (bare-metal)
+        self.assertEqual(d(260), ["__TASK_STOPPED", "TASK_WAKEKILL"])              # SIGSTOP
+        self.assertEqual(d(1026), ["TASK_UNINTERRUPTIBLE", "TASK_NOLOAD"])         # TASK_IDLE kthread
+        self.assertEqual(d(0x10000 | 1), ["TASK_INTERRUPTIBLE", "0x10000"])        # мэдэгдэхгүй бит
+        self.assertEqual(d(-1), [])
+
+    def test_27_parse_pid_range(self):
+        self.assertEqual(server.parse_pid(" 42 "), 42)
+        for bad in ("0", "00", str(server.PID_MAX_LIMIT + 1)):
+            with self.subTest(pid=bad), self.assertRaises(server.TaskError):
+                server.parse_pid(bad)
 
     def test_18a_team_format(self):
         """Багийн src/kmod/pid.c: номын мөр + parent/child мөрүүд."""
